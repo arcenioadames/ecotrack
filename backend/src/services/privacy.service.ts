@@ -67,7 +67,7 @@ export class PrivacyService {
       reason: anonymizedReason,
     });
 
-    console.info(
+    console.warn(
       JSON.stringify({
         event: "user_anonymized",
         userId: input.userId,

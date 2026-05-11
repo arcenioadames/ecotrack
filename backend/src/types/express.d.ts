@@ -1,4 +1,3 @@
-import { Request } from "express";
 import type { Role } from "../utils/jwt";
 
 declare global {

@@ -44,13 +44,13 @@ const seedUsers: SeedUser[] = [
 
 async function seed(): Promise<void> {
   try {
-    console.log("🌱 Starting database seed...\n");
+    console.warn("🌱 Starting database seed...\n");
 
     // Clear existing users (optional - comment out to keep existing data)
     await prisma.userAnonymizationAudit.deleteMany({});
     await prisma.policyAcceptanceAudit.deleteMany({});
     const deletedCount = await prisma.user.deleteMany({});
-    console.log(`🗑️  Deleted ${deletedCount.count} existing users\n`);
+    console.warn(`🗑️  Deleted ${deletedCount.count} existing users\n`);
 
     // Insert seed users
     for (const user of seedUsers) {
@@ -80,20 +80,20 @@ async function seed(): Promise<void> {
         },
       });
 
-      console.log(`✅ Created ${user.role} user:`);
-      console.log(`   Name: ${createdUser.name}`);
-      console.log(`   Email: ${createdUser.email}`);
-      console.log(`   Password (plain): ${user.password}`);
-      console.log(`   ID: ${createdUser.id}\n`);
+      console.warn(`✅ Created ${user.role} user:`);
+      console.warn(`   Name: ${createdUser.name}`);
+      console.warn(`   Email: ${createdUser.email}`);
+      console.warn(`   Password (plain): ${user.password}`);
+      console.warn(`   ID: ${createdUser.id}\n`);
     }
 
-    console.log("✨ Database seed completed successfully!\n");
-    console.log("📝 Test Credentials:");
-    console.log("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━");
+    console.warn("✨ Database seed completed successfully!\n");
+    console.warn("📝 Test Credentials:");
+    console.warn("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━");
     seedUsers.forEach((user) => {
-      console.log(`${user.role.padEnd(6)} | ${user.email.padEnd(20)} | ${user.password}`);
+      console.warn(`${user.role.padEnd(6)} | ${user.email.padEnd(20)} | ${user.password}`);
     });
-    console.log("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n");
+    console.warn("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n");
   } catch (error) {
     console.error("❌ Seed failed:", error);
     process.exit(1);

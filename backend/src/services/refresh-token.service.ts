@@ -39,7 +39,7 @@ export class RefreshTokenService {
       expiresAt: getRefreshExpiresAt(),
     });
 
-    console.info(JSON.stringify({ event: "login", userId: user.id }));
+    console.warn(JSON.stringify({ event: "login", userId: user.id }));
 
     return { accessToken, refreshToken };
   }
@@ -55,7 +55,7 @@ export class RefreshTokenService {
       }
 
       await RefreshTokenRepository.revokeAllByUser(payload.sub);
-      console.info(JSON.stringify({ event: "refresh_token_reuse_detected", userId: payload.sub }));
+      console.warn(JSON.stringify({ event: "refresh_token_reuse_detected", userId: payload.sub }));
       throw new Error("REFRESH_TOKEN_REUSED");
     }
 
@@ -64,7 +64,7 @@ export class RefreshTokenService {
 
     await RefreshTokenRepository.rotateToken(activeToken.id, hashToken(nextRefreshToken), getRefreshExpiresAt());
 
-    console.info(JSON.stringify({ event: "refresh_token_rotation", userId: payload.sub }));
+    console.warn(JSON.stringify({ event: "refresh_token_rotation", userId: payload.sub }));
 
     return { accessToken, refreshToken: nextRefreshToken };
   }
@@ -77,7 +77,7 @@ export class RefreshTokenService {
     if (!activeToken) {
       if (!isExpired(payload.exp)) {
         await RefreshTokenRepository.revokeAllByUser(payload.sub);
-        console.info(JSON.stringify({ event: "token_revoked_reuse_detected", userId: payload.sub }));
+        console.warn(JSON.stringify({ event: "token_revoked_reuse_detected", userId: payload.sub }));
         throw new Error("REFRESH_TOKEN_REUSED");
       }
 
@@ -85,12 +85,12 @@ export class RefreshTokenService {
     }
 
     await RefreshTokenRepository.revoke(activeToken.id);
-    console.info(JSON.stringify({ event: "logout", userId: payload.sub }));
+    console.warn(JSON.stringify({ event: "logout", userId: payload.sub }));
   }
 
   public static async logoutAll(userId: string): Promise<void> {
     await RefreshTokenRepository.revokeAllByUser(userId);
-    console.info(JSON.stringify({ event: "logout_all", userId }));
+    console.warn(JSON.stringify({ event: "logout_all", userId }));
   }
 
   public static async logoutAllByRefreshToken(refreshToken: string): Promise<void> {

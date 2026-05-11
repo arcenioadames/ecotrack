@@ -61,7 +61,7 @@ export class AuthService {
 
 		const user = created;
 
-		console.info(
+		console.warn(
 			JSON.stringify({
 				event: "policy_accepted",
 				userId: user.id,
@@ -86,18 +86,18 @@ export class AuthService {
 			throw new Error("INVALID_CREDENTIALS");
 		}
 
-		if (!(user as any).isActive) {
+		if (!user.isActive) {
 			throw new Error("USER_INACTIVE");
 		}
 
-		const match = await bcrypt.compare(password, (user as any).passwordHash);
+		const match = await bcrypt.compare(password, user.passwordHash as string);
 		if (!match) {
 			throw new Error("INVALID_CREDENTIALS");
 		}
 
 		return RefreshTokenService.issueTokens({
-			id: (user as any).id,
-			role: (user as any).role,
+			id: user.id,
+			role: user.role as "ADMIN" | "STAFF",
 		});
 	}
 

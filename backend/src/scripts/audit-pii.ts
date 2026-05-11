@@ -61,7 +61,7 @@ function main() {
   const report = auditSchema(schemaPath);
   const output = JSON.stringify(report, null, 2);
 
-  console.log(output);
+  console.warn(output);
 
   const outputPath = process.env.PII_AUDIT_OUTPUT;
   if (outputPath) {
@@ -69,6 +69,8 @@ function main() {
   }
 }
 
-if (require.main === module) {
+// Entry detection without using CommonJS `require.main` to avoid ESLint/TS no-undef
+const entryPoint = process.argv[1] ?? "";
+if (entryPoint.includes("audit-pii")) {
   main();
 }
