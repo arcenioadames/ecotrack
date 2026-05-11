@@ -47,14 +47,8 @@ export class AuthController {
       const tokens = await AuthService.login(parsed.data);
       return res.status(200).json(tokens);
     } catch (err) {
-      if (err instanceof Error) {
-        if (err.message === "INVALID_CREDENTIALS") {
-          return res.status(401).json({ message: err.message });
-        }
-
-        if (err.message === "USER_INACTIVE") {
-          return res.status(403).json({ message: err.message });
-        }
+      if (err instanceof Error && (err.message === "INVALID_CREDENTIALS" || err.message === "USER_INACTIVE")) {
+        return res.status(401).json({ message: "Invalid credentials" });
       }
 
       return res.status(500).json({ message: "Internal server error" });

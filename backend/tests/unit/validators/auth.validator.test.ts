@@ -11,6 +11,7 @@ describe("Auth Validators", () => {
       name: "John Doe",
       email: "john@example.com",
       password: "SecurePass123",
+      role: "STAFF",
       acceptedPolicy: true,
     };
 
@@ -22,15 +23,29 @@ describe("Auth Validators", () => {
       }
     });
 
-    it("should strip unknown fields such as role (public register)", () => {
+    it("should validate an allowed role", () => {
       const result = registerSchema.safeParse({
         ...validRegisterData,
         role: "ADMIN",
       });
       expect(result.success).toBe(true);
       if (result.success) {
-        expect(result.data).toEqual(validRegisterData);
-        expect(result.data).not.toHaveProperty("role");
+        expect(result.data).toEqual({
+          ...validRegisterData,
+          role: "ADMIN",
+        });
+        expect(result.data.role).toBe("ADMIN");
+      }
+    });
+
+    it("should reject an invalid role", () => {
+      const result = registerSchema.safeParse({
+        ...validRegisterData,
+        role: "MANAGER",
+      });
+      expect(result.success).toBe(false);
+      if (!result.success) {
+        expect(result.error.issues[0].message).toContain("ADMIN o STAFF");
       }
     });
 
