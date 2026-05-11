@@ -16,7 +16,7 @@ export const authenticate: RequestHandler = (req, res, next) => {
 
 	try {
 		const payload = verifyAccessToken(token);
-		req.user = { sub: payload.sub, role: payload.role as Role };
+		req.user = { sub: payload.sub, role: payload.role };
 		return next();
 	} catch {
 		return res.status(401).json({ message: "Invalid or expired token" });

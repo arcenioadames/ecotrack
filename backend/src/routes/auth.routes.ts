@@ -9,9 +9,11 @@ export const authRouter = Router();
  * /auth/register:
  *   post:
  *     summary: Register a new user
- *     description: Creates a new user account with STAFF role
+ *     description: Creates a new user account. Requires ADMIN role.
  *     tags:
  *       - Authentication
+ *     security:
+ *       - bearerAuth: []
  *     requestBody:
  *       required: true
  *       content:
@@ -25,6 +27,8 @@ export const authRouter = Router();
  *           application/json:
  *             schema:
  *               $ref: '#/components/schemas/UserResponse'
+ *       403:
+ *         description: Forbidden
  *       400:
  *         description: Validation error
  *         content:
@@ -34,7 +38,7 @@ export const authRouter = Router();
  *       409:
  *         description: Email already exists
  */
-authRouter.post("/register", AuthController.register);
+authRouter.post("/register", authenticate, authorize("ADMIN"), AuthController.register);
 
 /**
  * @swagger
@@ -102,12 +106,5 @@ authRouter.post("/login", AuthController.login);
  *         description: Validation error
  */
 authRouter.post("/refresh", AuthController.refresh);
-
-authRouter.post(
-  "/register-admin",
-  authenticate,
-  authorize("ADMIN"),
-  AuthController.registerAdminPlaceholder,
-);
 
 export default authRouter;

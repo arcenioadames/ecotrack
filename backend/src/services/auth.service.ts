@@ -8,19 +8,20 @@ import {
 } from "../utils/jwt";
 
 type PublicUser = {
-	id: string
-	name: string
-	email: string
-	role: "ADMIN" | "STAFF"
+	id: string;
+	name: string;
+	email: string;
+	role: "ADMIN" | "STAFF";
+	createdAt: Date;
+	updatedAt: Date;
 }
 
 export class AuthService {
 	/**
-	 * Register a new user
+	 * Register a new user created by an ADMIN
 	 */
 	public static async register(input: RegisterInput): Promise<PublicUser> {
-		const { name, email, password, acceptedPolicy } = input;
-		const role = "STAFF" as const;
+		const { name, email, password, role, acceptedPolicy } = input;
 
 		// Check existing email
 		const existing = await prisma.user.findUnique({ where: { email } });
@@ -30,7 +31,7 @@ export class AuthService {
 
 		// Hash password (cost factor >= 10)
 		const envRounds = Number(process.env.BCRYPT_SALT_ROUNDS) || 12;
-		const saltRounds = envRounds >= 10 ? envRounds : 10;
+		const saltRounds = Math.max(envRounds, 10);
 		const hashed = await bcrypt.hash(password, saltRounds);
 
 		// Save policy metadata
@@ -41,7 +42,7 @@ export class AuthService {
 			data: {
 				name,
 				email,
-				password: hashed,
+				passwordHash: hashed,
 				role,
 				acceptedPolicy,
 				policyAcceptedAt,
@@ -52,6 +53,8 @@ export class AuthService {
 				name: true,
 				email: true,
 				role: true,
+				createdAt: true,
+				updatedAt: true,
 			},
 		});
 
@@ -75,7 +78,7 @@ export class AuthService {
 			throw new Error("USER_INACTIVE");
 		}
 
-		const match = await bcrypt.compare(password, user.password);
+		const match = await bcrypt.compare(password, user.passwordHash);
 		if (!match) {
 			throw new Error("INVALID_CREDENTIALS");
 		}

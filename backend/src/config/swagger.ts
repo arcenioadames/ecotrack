@@ -25,7 +25,7 @@ const options = {
       schemas: {
         RegisterRequest: {
           type: "object",
-          required: ["name", "email", "password", "acceptedPolicy"],
+          required: ["name", "email", "password", "role", "acceptedPolicy"],
           properties: {
             name: {
               type: "string",
@@ -41,6 +41,12 @@ const options = {
               type: "string",
               example: "SecurePass123",
               description: "Min 8 chars, 1 uppercase, 1 number",
+            },
+            role: {
+              type: "string",
+              enum: ["ADMIN", "STAFF"],
+              example: "STAFF",
+              description: "Allowed role values",
             },
             acceptedPolicy: {
               type: "boolean",
@@ -96,6 +102,10 @@ const options = {
               type: "boolean",
             },
             createdAt: {
+              type: "string",
+              format: "date-time",
+            },
+            updatedAt: {
               type: "string",
               format: "date-time",
             },

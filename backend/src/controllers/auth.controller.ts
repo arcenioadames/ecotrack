@@ -10,7 +10,13 @@ export class AuthController {
   public static async register(req: Request, res: Response): Promise<Response> {
     const parsed = registerSchema.safeParse(req.body);
     if (!parsed.success) {
-      return res.status(400).json({ message: "Validation error", errors: parsed.error.format() });
+      return res.status(400).json({
+        message: "Validation error",
+        errors: parsed.error.issues.map((issue) => ({
+          path: issue.path,
+          message: issue.message,
+        })),
+      });
     }
 
     try {
@@ -28,7 +34,13 @@ export class AuthController {
   public static async login(req: Request, res: Response): Promise<Response> {
     const parsed = loginSchema.safeParse(req.body);
     if (!parsed.success) {
-      return res.status(400).json({ message: "Validation error", errors: parsed.error.format() });
+      return res.status(400).json({
+        message: "Validation error",
+        errors: parsed.error.issues.map((issue) => ({
+          path: issue.path,
+          message: issue.message,
+        })),
+      });
     }
 
     try {
@@ -52,7 +64,13 @@ export class AuthController {
   public static async refresh(req: Request, res: Response): Promise<Response> {
     const parsed = refreshTokenSchema.safeParse(req.body);
     if (!parsed.success) {
-      return res.status(400).json({ message: "Validation error", errors: parsed.error.format() });
+      return res.status(400).json({
+        message: "Validation error",
+        errors: parsed.error.issues.map((issue) => ({
+          path: issue.path,
+          message: issue.message,
+        })),
+      });
     }
 
     try {
@@ -61,14 +79,6 @@ export class AuthController {
     } catch {
       return res.status(401).json({ message: "Invalid token" });
     }
-  }
-
-  /**
-   * Reservado para Sprint 2+: creación de usuarios ADMIN por otro administrador.
-   * Hoy responde 501 para fijar el contrato HTTP sin exponer elevación pública.
-   */
-  public static async registerAdminPlaceholder(_req: Request, res: Response): Promise<Response> {
-    return res.status(501).json({ message: "Not implemented: admin user provisioning" });
   }
 }
 

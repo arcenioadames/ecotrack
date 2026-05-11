@@ -58,7 +58,7 @@ async function seed(): Promise<void> {
         data: {
           name: user.name,
           email: user.email,
-          password: hashedPassword,
+          passwordHash: hashedPassword,
           role: user.role,
           acceptedPolicy: user.acceptedPolicy,
           policyAcceptedAt: new Date(),

@@ -32,10 +32,11 @@ describe("AuthService", () => {
       name: "John Doe",
       email: "john@example.com",
       password: "SecurePass123",
+      role: "STAFF",
       acceptedPolicy: true,
     };
 
-    it("should successfully register a new user as STAFF", async () => {
+    it("should successfully register a new user with requested role", async () => {
       mockPrisma.user.findUnique.mockResolvedValue(null);
 
       mockBcrypt.hash.mockResolvedValue("hashed_password_123" as never);
@@ -45,6 +46,8 @@ describe("AuthService", () => {
         name: "John Doe",
         email: "john@example.com",
         role: "STAFF",
+        createdAt: new Date("2026-05-11T00:00:00.000Z"),
+        updatedAt: new Date("2026-05-11T00:00:00.000Z"),
       } as never);
 
       const result = await AuthService.register(validRegisterInput);
@@ -54,6 +57,8 @@ describe("AuthService", () => {
         name: "John Doe",
         email: "john@example.com",
         role: "STAFF",
+        createdAt: new Date("2026-05-11T00:00:00.000Z"),
+        updatedAt: new Date("2026-05-11T00:00:00.000Z"),
       });
 
       expect(mockPrisma.user.findUnique).toHaveBeenCalledWith({
@@ -66,7 +71,36 @@ describe("AuthService", () => {
         expect.objectContaining({
           data: expect.objectContaining({
             role: "STAFF",
+            passwordHash: "hashed_password_123",
           }),
+        }),
+      );
+    });
+
+    it("should allow ADMIN role when requested", async () => {
+      mockPrisma.user.findUnique.mockResolvedValue(null);
+      mockBcrypt.hash.mockResolvedValue("hashed_password_admin" as never);
+      mockPrisma.user.create.mockResolvedValue({
+        id: "user-admin",
+        name: "Admin User",
+        email: "admin@example.com",
+        role: "ADMIN",
+        createdAt: new Date("2026-05-11T00:00:00.000Z"),
+        updatedAt: new Date("2026-05-11T00:00:00.000Z"),
+      } as never);
+
+      const result = await AuthService.register({
+        name: "Admin User",
+        email: "admin@example.com",
+        password: "SecurePass123",
+        role: "ADMIN",
+        acceptedPolicy: true,
+      });
+
+      expect(result.role).toBe("ADMIN");
+      expect(mockPrisma.user.create).toHaveBeenCalledWith(
+        expect.objectContaining({
+          data: expect.objectContaining({ role: "ADMIN" }),
         }),
       );
     });
@@ -77,12 +111,13 @@ describe("AuthService", () => {
         email: "john@example.com",
         name: "Existing User",
         role: "STAFF",
-        password: "hash",
+        passwordHash: "hash",
         isActive: true,
         acceptedPolicy: true,
         policyAcceptedAt: new Date(),
         policyVersion: "1",
         createdAt: new Date(),
+        updatedAt: new Date(),
       } as never);
 
       await expect(AuthService.register(validRegisterInput)).rejects.toThrow(
@@ -96,7 +131,7 @@ describe("AuthService", () => {
       expect(mockPrisma.user.create).not.toHaveBeenCalled();
     });
 
-    it("always assigns STAFF for public registration", async () => {
+    it("should preserve the requested STAFF role on create", async () => {
       mockPrisma.user.findUnique.mockResolvedValue(null);
       mockBcrypt.hash.mockResolvedValue("hashed_password" as never);
       mockPrisma.user.create.mockResolvedValue({
@@ -104,6 +139,8 @@ describe("AuthService", () => {
         name: "John Doe",
         email: "john@example.com",
         role: "STAFF",
+        createdAt: new Date(),
+        updatedAt: new Date(),
       } as never);
 
       await AuthService.register(validRegisterInput);
@@ -126,7 +163,7 @@ describe("AuthService", () => {
       const mockUser = {
         id: "user-123",
         email: "john@example.com",
-        password: "hashed_password_123",
+        passwordHash: "hashed_password_123",
         role: "ADMIN" as const,
         isActive: true,
         name: "John Doe",
@@ -134,6 +171,7 @@ describe("AuthService", () => {
         policyAcceptedAt: new Date(),
         policyVersion: "1",
         createdAt: new Date(),
+        updatedAt: new Date(),
       };
 
       mockPrisma.user.findUnique.mockResolvedValue(mockUser as never);
@@ -168,7 +206,7 @@ describe("AuthService", () => {
       const mockUser = {
         id: "user-123",
         email: "john@example.com",
-        password: "hashed_password_123",
+        passwordHash: "hashed_password_123",
         role: "ADMIN" as const,
         isActive: true,
         name: "John Doe",
@@ -176,6 +214,7 @@ describe("AuthService", () => {
         policyAcceptedAt: new Date(),
         policyVersion: "1",
         createdAt: new Date(),
+        updatedAt: new Date(),
       };
 
       mockPrisma.user.findUnique.mockResolvedValue(mockUser as never);
@@ -188,7 +227,7 @@ describe("AuthService", () => {
       const inactiveUser = {
         id: "user-123",
         email: "john@example.com",
-        password: "hashed_password_123",
+        passwordHash: "hashed_password_123",
         role: "ADMIN" as const,
         isActive: false,
         name: "John Doe",
@@ -196,6 +235,7 @@ describe("AuthService", () => {
         policyAcceptedAt: new Date(),
         policyVersion: "1",
         createdAt: new Date(),
+        updatedAt: new Date(),
       };
 
       mockPrisma.user.findUnique.mockResolvedValue(inactiveUser as never);
@@ -209,7 +249,7 @@ describe("AuthService", () => {
       const mockUser = {
         id: "user-789",
         email: "staff@example.com",
-        password: "hashed_password",
+        passwordHash: "hashed_password",
         role: "STAFF" as const,
         isActive: true,
         name: "Staff User",
@@ -217,6 +257,7 @@ describe("AuthService", () => {
         policyAcceptedAt: new Date(),
         policyVersion: "1",
         createdAt: new Date(),
+        updatedAt: new Date(),
       };
 
       mockPrisma.user.findUnique.mockResolvedValue(mockUser as never);
