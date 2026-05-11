@@ -4,13 +4,10 @@ on:
   push:
     branches:
       - main
-      - develop
       - test-ci
-
   pull_request:
     branches:
       - main
-      - develop
 
 permissions:
   contents: read
@@ -22,10 +19,18 @@ concurrency:
 jobs:
   ci:
     runs-on: ubuntu-latest
+    timeout-minutes: 25
 
     defaults:
       run:
         working-directory: backend
+
+    env:
+      DATABASE_URL: postgresql://postgres:postgres@localhost:5432/ecotrack_test
+      JWT_SECRET: test_secret
+      ACCESS_TOKEN_SECRET: test_access_secret
+      REFRESH_TOKEN_SECRET: test_refresh_secret
+      NODE_ENV: test
 
     services:
       postgres:
@@ -37,46 +42,44 @@ jobs:
         ports:
           - 5432:5432
         options: >-
-          --health-cmd="pg_isready -U postgres"
-          --health-interval=10s
-          --health-timeout=5s
-          --health-retries=5
-
-    env:
-      DATABASE_URL: postgresql://postgres:postgres@localhost:5432/ecotrack_test
-      JWT_SECRET: test-secret
-      ACCESS_TOKEN_SECRET: test-access-secret
-      REFRESH_TOKEN_SECRET: test-refresh-secret
-      NODE_ENV: test
+          --health-cmd "pg_isready -U postgres -d ecotrack_test"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
 
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Setup Node.js
+      - name: Setup Node.js 22 with npm cache
         uses: actions/setup-node@v4
         with:
-          node-version: 20
+          node-version: "22"
           cache: npm
           cache-dependency-path: backend/package-lock.json
 
       - name: Install dependencies
         run: npm ci
 
-      - name: Prisma generate
+      - name: Generate Prisma client
         run: npx prisma generate
-
-      - name: Run database migrations
-        run: npx prisma migrate deploy
 
       - name: Run lint
         run: npm run lint
 
-      - name: Run tests
-        run: npm test -- --runInBand
+      - name: Run tests with coverage
+        run: npm run test:coverage -- --runInBand
 
-      - name: Build project
+      - name: Run TypeScript build
         run: npm run build
 
-      - name: Audit dependencies
+      - name: Run npm audit
         run: npm audit --audit-level=high
+
+      - name: Upload coverage artifact
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: backend-coverage
+          path: backend/coverage
+          if-no-files-found: warn
