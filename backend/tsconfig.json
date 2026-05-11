@@ -1,0 +1,34 @@
+{
+"compilerOptions": {
+"target": "ES2020",
+"module": "commonjs",
+
+"rootDir": ".",
+"outDir": "dist",
+
+"strict": true,
+
+"esModuleInterop": true,
+"skipLibCheck": true,
+"forceConsistentCasingInFileNames": true,
+
+"moduleResolution": "node",
+
+"ignoreDeprecations": "6.0",
+
+"types": ["node"],
+
+"resolveJsonModule": true
+
+},
+
+"include": [
+"src",
+"prisma"
+],
+
+"exclude": [
+"node_modules",
+"dist"
+]
+}
