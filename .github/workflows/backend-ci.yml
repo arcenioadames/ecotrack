@@ -5,7 +5,6 @@ on:
     branches:
       - main
       - test-ci
-
   pull_request:
     branches:
       - main
@@ -52,7 +51,7 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Setup Node.js
+      - name: Setup Node.js 22 with npm cache
         uses: actions/setup-node@v4
         with:
           node-version: "22"
@@ -68,10 +67,10 @@ jobs:
       - name: Run lint
         run: npm run lint
 
-      - name: Run tests
-        run: npm test -- --runInBand
+      - name: Run tests with coverage
+        run: npm run test:coverage -- --runInBand
 
-      - name: Build project
+      - name: Run TypeScript build
         run: npm run build
 
       - name: Run npm audit
@@ -83,4 +82,5 @@ jobs:
         with:
           name: backend-coverage
           path: backend/coverage
-          if-no-files-found: warn
+          retention-days: 30
+          if-no-files-found: ignore
