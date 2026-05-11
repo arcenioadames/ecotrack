@@ -2,8 +2,10 @@ import express from "express";
 import cors, { type CorsOptions } from "cors";
 import helmet from "helmet";
 import morgan from "morgan";
+import swaggerUi from "swagger-ui-express";
 
 import authRouter from "./routes/auth.routes";
+import { swaggerSpec } from "./config/swagger";
 
 import { registerTestingRoutes } from "./routes/testing.routes";
 
@@ -34,6 +36,9 @@ if (process.env.NODE_ENV !== "production" && process.env.NODE_ENV !== "test") {
   app.use(morgan("dev"));
 }
 app.use(express.json());
+
+// Swagger documentation
+app.use("/api-docs", swaggerUi.serve, swaggerUi.setup(swaggerSpec));
 
 // Routes
 app.use("/auth", authRouter);
