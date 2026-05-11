@@ -20,6 +20,15 @@ export const authRouter = Router();
  *         application/json:
  *           schema:
  *             $ref: '#/components/schemas/RegisterRequest'
+ *           examples:
+ *             policyAccepted:
+ *               summary: Admin-created staff account with policy acceptance
+ *               value:
+ *                 name: "Juan Pérez"
+ *                 email: "juan@example.com"
+ *                 password: "SecurePass123"
+ *                 role: "STAFF"
+ *                 acceptedPolicy: true
  *     responses:
  *       201:
  *         description: User successfully registered
@@ -106,5 +115,49 @@ authRouter.post("/login", AuthController.login);
  *         description: Validation error
  */
 authRouter.post("/refresh", AuthController.refresh);
+
+/**
+ * @swagger
+ * /auth/logout:
+ *   post:
+ *     summary: Logout current session
+ *     description: Revokes the presented refresh token.
+ *     tags:
+ *       - Authentication
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             $ref: '#/components/schemas/RefreshTokenRequest'
+ *     responses:
+ *       200:
+ *         description: Logged out
+ *       401:
+ *         description: Invalid or expired token
+ */
+authRouter.post("/logout", AuthController.logout);
+
+/**
+ * @swagger
+ * /auth/logout-all:
+ *   post:
+ *     summary: Logout all sessions
+ *     description: Revokes all refresh tokens for the same user identified by the presented refresh token.
+ *     tags:
+ *       - Authentication
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             $ref: '#/components/schemas/RefreshTokenRequest'
+ *     responses:
+ *       200:
+ *         description: All sessions revoked
+ *       401:
+ *         description: Invalid or expired token
+ */
+authRouter.post("/logout-all", AuthController.logoutAll);
 
 export default authRouter;

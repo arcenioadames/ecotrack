@@ -45,7 +45,7 @@ export const loginSchema = z.object({
  * Schema para refresh token
  */
 export const refreshTokenSchema = z.object({
-  refreshToken: z.string().min(1, { message: "El refreshToken es obligatorio" }),
+  refreshToken: z.string().min(1, { message: "El refreshToken es obligatorio" }).optional(),
 });
 
 // Tipos inferidos

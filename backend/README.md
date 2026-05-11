@@ -1,8 +1,151 @@
 # 🎯 EcoTrack Backend - Phase 10 CI/CD Setup
 
+[![Backend CI](https://github.com/arcenioadames/ecotrack/actions/workflows/backend-ci.yml/badge.svg)](https://github.com/arcenioadames/ecotrack/actions/workflows/backend-ci.yml)
+
 ## 📋 Descripción
 
-Este es el backend de EcoTrack con **Phase 10 implementada**: CI/CD automation con ESLint, Jest, y GitHub Actions.
+Este es el backend de EcoTrack con CI/CD, autenticación JWT con refresh tokens persistidos y cumplimiento de privacidad listos para auditoría técnica.
+
+## 🔐 Flujo de sesión
+
+- `POST /auth/login` emite access token y refresh token persistido.
+- `POST /auth/refresh` rota el refresh token actual e invalida el anterior.
+- `POST /auth/logout` revoca la sesión actual.
+- `POST /auth/logout-all` revoca todas las sesiones del usuario.
+
+En producción, el backend puede emitir refresh token en cookie `HttpOnly`, `SameSite=Strict` y `Secure`.
+
+## 🛡️ HU-16 - Privacidad y cumplimiento
+
+La historia de usuario queda cubierta con estos componentes:
+
+- Checkbox obligatorio en el registro: `Acepto términos y política de tratamiento de datos`.
+- Política visible en [la página legal](http://localhost:3000/legal/privacy).
+- Persistencia de aceptación con fecha, hora, versión de política e IP opcional.
+- Auditoría separada de aceptación y anonimización.
+- Endpoint de derecho al olvido para anonimizar la cuenta autenticada.
+- HTTPS obligatorio en producción, TLS 1.2+ detrás del proxy y protección básica de API.
+
+### Flujo legal completo
+
+1. El administrador abre la página legal y revisa la versión activa de la política.
+2. En el formulario de registro marca el checkbox obligatorio.
+3. El backend guarda la aceptación en `User` y en `PolicyAcceptanceAudit`.
+4. Si el usuario ejerce su derecho al olvido, `DELETE /privacy/me` anonimiza la cuenta.
+5. La auditoría de anonimización queda en `UserAnonymizationAudit` y se conservan solo los registros legalmente requeridos.
+
+### Ejemplo frontend
+
+```html
+<form method="post" action="/auth/register">
+   <input name="name" placeholder="Nombre" required />
+   <input name="email" type="email" placeholder="Correo" required />
+   <input name="password" type="password" placeholder="Contraseña" required />
+
+   <label>
+      <input type="checkbox" name="acceptedPolicy" required />
+      Acepto términos y política de tratamiento de datos
+   </label>
+
+   <a href="/legal/privacy" target="_blank" rel="noreferrer">
+      Ver política de tratamiento de datos
+   </a>
+
+   <button type="submit">Crear cuenta</button>
+</form>
+```
+
+### Ejemplos request/response
+
+Registro:
+
+```bash
+curl -X POST http://localhost:3000/auth/register \
+   -H "Authorization: Bearer <admin-jwt>" \
+   -H "Content-Type: application/json" \
+   -d '{
+      "name": "Juan Pérez",
+      "email": "juan@example.com",
+      "password": "SecurePass123",
+      "role": "STAFF",
+      "acceptedPolicy": true
+   }'
+```
+
+Respuesta esperada:
+
+```json
+{
+   "message": "User created",
+   "user": {
+      "id": "...",
+      "name": "Juan Pérez",
+      "email": "juan@example.com",
+      "role": "STAFF",
+      "acceptedPolicy": true,
+      "policyAcceptedAt": "2026-05-11T00:00:00.000Z",
+      "policyVersion": "1",
+      "anonymizedAt": null,
+      "anonymizedReason": null,
+      "isActive": true,
+      "createdAt": "2026-05-11T00:00:00.000Z",
+      "updatedAt": "2026-05-11T00:00:00.000Z"
+   }
+}
+```
+
+Anonimización:
+
+```bash
+curl -X DELETE http://localhost:3000/privacy/me \
+   -H "Authorization: Bearer <access-jwt>" \
+   -H "Content-Type: application/json" \
+   -d '{
+      "confirmAnonymization": true,
+      "reason": "Derecho al olvido"
+   }'
+```
+
+Respuesta esperada:
+
+```json
+{
+   "message": "User anonymized",
+   "user": {
+      "id": "...",
+      "name": "Usuario anonimizado",
+      "email": "anon-...@privacy.ecotrack.invalid",
+      "role": "STAFF",
+      "acceptedPolicy": true,
+      "policyAcceptedAt": "2026-05-11T00:00:00.000Z",
+      "policyVersion": "1",
+      "anonymizedAt": "2026-05-11T00:10:00.000Z",
+      "anonymizedReason": "RIGHT_TO_BE_FORGOTTEN",
+      "isActive": false,
+      "createdAt": "2026-05-11T00:00:00.000Z",
+      "updatedAt": "2026-05-11T00:10:00.000Z"
+   }
+}
+```
+
+## 🔔 Estado del pipeline
+
+El workflow se dispara en `pull_request` hacia `main` y `develop`, y en `push` hacia `main`.
+
+Stages ejecutados en orden:
+- `install`
+- `lint`
+- `test`
+- `build`
+- `audit`
+
+Si quieres notificaciones automáticas, define un webhook opcional para Discord o Slack con una de estas opciones:
+- `CI_WEBHOOK_URL` como secret de GitHub
+- `CI_WEBHOOK_KIND` como variable de repositorio con valor `discord` o `slack`
+
+Si no configuras webhook, el pipeline sigue funcionando sin notificaciones.
+
+El workflow usa `npm install`, `npm run lint`, `npm run test`, `npm run build` y `npm audit --audit-level=high`.
 
 ---
 
@@ -45,6 +188,9 @@ REFRESH_TOKEN_SECRET="your-refresh-secret-key-here"
 BCRYPT_SALT_ROUNDS=12
 POLICY_VERSION=1
 CORS_ORIGIN=http://localhost:5173
+REFRESH_TOKEN_COOKIE=0
+REFRESH_TOKEN_COOKIE_SECURE=0
+REFRESH_TOKEN_TTL_SECONDS=604800
 ```
 
 ### Configuración Supabase
@@ -56,6 +202,27 @@ CORS_ORIGIN=http://localhost:5173
    - Usa conexión directa (sin pooling) → DIRECT_URL
 5. Añade `?sslmode=require` si no está incluído
 6. Actualiza `.env` con las URLs y tu contraseña
+
+### Secrets y variables de GitHub Actions
+
+Configura en el repositorio estos secrets/variables para CI/CD:
+
+| Nombre | Tipo | Uso |
+|--------|------|-----|
+| `CI_WEBHOOK_URL` | Secret | Webhook de Discord o Slack para notificaciones |
+| `CI_WEBHOOK_KIND` | Variable | `discord` o `slack` |
+
+Consulta [la guía de branch protection](docs/devops/github-branch-protection.md) para convertir la CI en un required check antes del merge.
+
+El workflow también usa variables internas para CI en GitHub Actions:
+- `NODE_ENV=test`
+- `DATABASE_URL` de PostgreSQL de prueba
+- `DIRECT_URL` de PostgreSQL de prueba
+- `ACCESS_TOKEN_SECRET`
+- `REFRESH_TOKEN_SECRET`
+- `BCRYPT_SALT_ROUNDS`
+- `POLICY_VERSION`
+- `CORS_ORIGIN`
 
 ---
 
@@ -106,6 +273,9 @@ npm start
 npm run audit
 # ↳ Verifica vulnerabilidades HIGH/CRITICAL
 # ↳ Falla si encuentra vulnerabilidades
+
+npm run audit:pii
+# ↳ Genera un reporte heurístico de posibles campos PII desde prisma/schema.prisma
 ```
 
 ### Prisma
@@ -132,9 +302,9 @@ Cuando haces `git push` a `main` o `develop`:
    ↓
 3. Setup Node.js 20.x
    ↓
-4. npm ci (instalación limpia)
+4. npm install
    ↓
-5. Lint → Build → Test → Audit → Type-Check (paralelo)
+5. Lint → Test → Build → Audit
    ↓
 6. Si TODO pasa ✅ → PR puede ser mergeado
 7. Si algo falla ❌ → PR bloqueado hasta fix
@@ -150,7 +320,7 @@ Todos estos DEBEN pasar:
 | **Build** | `npm run build` | TypeScript no compila |
 | **Test** | `npm test` | Tests fallan |
 | **Audit** | `npm audit --audit-level=high` | Vulnerabilidades CRITICAL |
-| **Type-Check** | `npx tsc --noEmit` | Errores de tipado |
+| **HTTPS/TLS** | `REQUIRE_HTTPS=1` en producción | Tráfico no seguro |
 
 ---
 

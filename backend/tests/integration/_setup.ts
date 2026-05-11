@@ -94,6 +94,8 @@ export async function setupTestDb(): Promise<void> {
 
 export async function cleanupTestDb(): Promise<void> {
   try {
+    await prisma.userAnonymizationAudit.deleteMany({});
+    await prisma.policyAcceptanceAudit.deleteMany({});
     await prisma.user.deleteMany({});
   } finally {
     await prisma.$disconnect();

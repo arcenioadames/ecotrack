@@ -47,6 +47,8 @@ async function seed(): Promise<void> {
     console.log("🌱 Starting database seed...\n");
 
     // Clear existing users (optional - comment out to keep existing data)
+    await prisma.userAnonymizationAudit.deleteMany({});
+    await prisma.policyAcceptanceAudit.deleteMany({});
     const deletedCount = await prisma.user.deleteMany({});
     console.log(`🗑️  Deleted ${deletedCount.count} existing users\n`);
 
@@ -63,7 +65,18 @@ async function seed(): Promise<void> {
           acceptedPolicy: user.acceptedPolicy,
           policyAcceptedAt: new Date(),
           policyVersion: "1",
+          policyAcceptedIp: "127.0.0.1",
           isActive: true,
+        },
+      });
+
+      await prisma.policyAcceptanceAudit.create({
+        data: {
+          userId: createdUser.id,
+          policyVersion: "1",
+          acceptedAt: new Date(),
+          acceptedIp: "127.0.0.1",
+          userAgent: "seed-script",
         },
       });
 

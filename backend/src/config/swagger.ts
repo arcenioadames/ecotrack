@@ -98,6 +98,27 @@ const options = {
               type: "string",
               enum: ["ADMIN", "STAFF"],
             },
+            acceptedPolicy: {
+              type: "boolean",
+            },
+            policyAcceptedAt: {
+              type: "string",
+              format: "date-time",
+              nullable: true,
+            },
+            policyVersion: {
+              type: "string",
+              nullable: true,
+            },
+            anonymizedAt: {
+              type: "string",
+              format: "date-time",
+              nullable: true,
+            },
+            anonymizedReason: {
+              type: "string",
+              nullable: true,
+            },
             isActive: {
               type: "boolean",
             },
@@ -135,6 +156,33 @@ const options = {
               items: {
                 type: "object",
               },
+            },
+          },
+        },
+        AnonymizeMeRequest: {
+          type: "object",
+          required: ["confirmAnonymization"],
+          properties: {
+            confirmAnonymization: {
+              type: "boolean",
+              enum: [true],
+              example: true,
+            },
+            reason: {
+              type: "string",
+              example: "Ejercicio del derecho al olvido",
+              maxLength: 255,
+            },
+          },
+        },
+        AnonymizeMeResponse: {
+          type: "object",
+          properties: {
+            message: {
+              type: "string",
+            },
+            user: {
+              $ref: "#/components/schemas/UserResponse",
             },
           },
         },

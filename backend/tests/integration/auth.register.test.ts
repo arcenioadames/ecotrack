@@ -8,6 +8,10 @@ jest.mock("../../prisma/client", () => ({
       findUnique: jest.fn(),
       create: jest.fn(),
     },
+    policyAcceptanceAudit: {
+      create: jest.fn(),
+    },
+    $transaction: jest.fn(),
   },
 }));
 
@@ -20,12 +24,20 @@ import bcrypt from "bcrypt";
 const mockPrisma = prisma as jest.Mocked<typeof prisma>;
 const mockBcrypt = bcrypt as jest.Mocked<typeof bcrypt>;
 
+function setupTransactionMock(): void {
+  const transactionMock = mockPrisma.$transaction as unknown as jest.Mock;
+  transactionMock.mockImplementation(async (handler: unknown) => {
+    return (handler as (tx: typeof mockPrisma) => Promise<unknown>)(mockPrisma);
+  });
+}
+
 describe("POST /auth/register", () => {
   const adminToken = generateAccessToken({ sub: "admin-1", role: "ADMIN" });
   const staffToken = generateAccessToken({ sub: "staff-1", role: "STAFF" });
 
   beforeEach(() => {
     jest.clearAllMocks();
+    setupTransactionMock();
   });
 
   it("returns 403 for STAFF users", async () => {
@@ -70,6 +82,9 @@ describe("POST /auth/register", () => {
       acceptedPolicy: true,
       policyAcceptedAt: new Date(),
       policyVersion: "1",
+      anonymizedAt: null,
+      anonymizedReason: null,
+      policyAcceptedIp: null,
       isActive: true,
       createdAt: new Date(),
       updatedAt: new Date(),
@@ -98,9 +113,16 @@ describe("POST /auth/register", () => {
       name: "New Staff",
       email: "newstaff@example.com",
       role: "STAFF",
+      acceptedPolicy: true,
+      policyAcceptedAt: new Date("2026-05-11T00:00:00.000Z"),
+      policyVersion: "1",
+      anonymizedAt: null,
+      anonymizedReason: null,
+      isActive: true,
       createdAt: new Date("2026-05-11T00:00:00.000Z"),
       updatedAt: new Date("2026-05-11T00:00:00.000Z"),
     } as never);
+    mockPrisma.policyAcceptanceAudit.create.mockResolvedValue({} as never);
 
     const response = await request(app)
       .post("/auth/register")
@@ -121,6 +143,12 @@ describe("POST /auth/register", () => {
         name: "New Staff",
         email: "newstaff@example.com",
         role: "STAFF",
+        acceptedPolicy: true,
+        policyAcceptedAt: "2026-05-11T00:00:00.000Z",
+        policyVersion: "1",
+        anonymizedAt: null,
+        anonymizedReason: null,
+        isActive: true,
         createdAt: "2026-05-11T00:00:00.000Z",
         updatedAt: "2026-05-11T00:00:00.000Z",
       },
@@ -129,7 +157,19 @@ describe("POST /auth/register", () => {
     expect(mockBcrypt.hash).toHaveBeenCalledWith("SecurePass123", expect.any(Number));
     expect(mockPrisma.user.create).toHaveBeenCalledWith(
       expect.objectContaining({
-        data: expect.objectContaining({ role: "STAFF", passwordHash: "hashed_password_123" }),
+        data: expect.objectContaining({
+          role: "STAFF",
+          passwordHash: "hashed_password_123",
+          policyAcceptedIp: expect.any(String),
+        }),
+      }),
+    );
+    expect(mockPrisma.policyAcceptanceAudit.create).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({
+          policyVersion: "1",
+          acceptedIp: expect.any(String),
+        }),
       }),
     );
   });

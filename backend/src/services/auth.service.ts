@@ -1,30 +1,38 @@
 import { RegisterInput, LoginInput, RefreshTokenInput } from "../validators/auth.validator";
-import { prisma } from "../../prisma/client";
 import bcrypt from "bcrypt";
-import {
-	generateAccessToken,
-	generateRefreshToken,
-	verifyRefreshToken,
-} from "../utils/jwt";
+import UserRepository from "../repositories/user.repository";
+import RefreshTokenService from "./refresh-token.service";
 
 type PublicUser = {
 	id: string;
 	name: string;
 	email: string;
 	role: "ADMIN" | "STAFF";
+	acceptedPolicy: boolean;
+	policyAcceptedAt: Date | null;
+	policyVersion: string | null;
+	anonymizedAt: Date | null;
+	anonymizedReason: string | null;
+	isActive: boolean;
 	createdAt: Date;
 	updatedAt: Date;
+}
+
+type RegisterContext = {
+	policyAcceptedIp?: string | null;
+	policyAcceptedUserAgent?: string | null;
 }
 
 export class AuthService {
 	/**
 	 * Register a new user created by an ADMIN
 	 */
-	public static async register(input: RegisterInput): Promise<PublicUser> {
+	public static async register(input: RegisterInput, context: RegisterContext = {}): Promise<PublicUser> {
 		const { name, email, password, role, acceptedPolicy } = input;
 
+
 		// Check existing email
-		const existing = await prisma.user.findUnique({ where: { email } });
+		const existing = await UserRepository.findByEmail(email);
 		if (existing) {
 			throw new Error("EMAIL_ALREADY_EXISTS");
 		}
@@ -38,25 +46,29 @@ export class AuthService {
 		const policyAcceptedAt = new Date();
 		const policyVersion = process.env.POLICY_VERSION ?? "1";
 
-		const user = await prisma.user.create({
-			data: {
-				name,
-				email,
-				passwordHash: hashed,
-				role,
-				acceptedPolicy,
-				policyAcceptedAt,
-				policyVersion,
-			},
-			select: {
-				id: true,
-				name: true,
-				email: true,
-				role: true,
-				createdAt: true,
-				updatedAt: true,
-			},
+		// create user and policy acceptance using repository
+		const created = await UserRepository.createUserAndSavePolicyAcceptance({
+			name,
+			email,
+			passwordHash: hashed,
+			role,
+			acceptedPolicy,
+			policyAcceptedAt,
+			policyVersion,
+			policyAcceptedIp: context.policyAcceptedIp ?? null,
+			userAgent: context.policyAcceptedUserAgent ?? null,
 		});
+
+		const user = created;
+
+		console.info(
+			JSON.stringify({
+				event: "policy_accepted",
+				userId: user.id,
+				policyVersion,
+				acceptedAt: policyAcceptedAt.toISOString(),
+			}),
+		);
 
 		return user;
 	}
@@ -67,28 +79,26 @@ export class AuthService {
 	public static async login(input: LoginInput): Promise<{ accessToken: string; refreshToken: string }> {
 		const { email, password } = input;
 
-		const user = await prisma.user.findUnique({ where: { email } });
+		const user = await UserRepository.findByEmail(email);
 
 		// Do not reveal whether email exists
 		if (!user) {
 			throw new Error("INVALID_CREDENTIALS");
 		}
 
-		if (!user.isActive) {
+		if (!(user as any).isActive) {
 			throw new Error("USER_INACTIVE");
 		}
 
-		const match = await bcrypt.compare(password, user.passwordHash);
+		const match = await bcrypt.compare(password, (user as any).passwordHash);
 		if (!match) {
 			throw new Error("INVALID_CREDENTIALS");
 		}
 
-		const payload = { sub: user.id, role: user.role };
-
-		const accessToken = generateAccessToken(payload);
-		const refreshToken = generateRefreshToken(payload);
-
-		return { accessToken, refreshToken };
+		return RefreshTokenService.issueTokens({
+			id: (user as any).id,
+			role: (user as any).role,
+		});
 	}
 
 	/**
@@ -96,13 +106,12 @@ export class AuthService {
 	 */
 	public static async refreshToken(input: RefreshTokenInput): Promise<{ accessToken: string }> {
 		const { refreshToken } = input;
+		if (!refreshToken) {
+			throw new Error("INVALID_TOKEN");
+		}
 
-		const payload = verifyRefreshToken(refreshToken);
-
-		// generate new access token
-		const accessToken = generateAccessToken({ sub: payload.sub, role: payload.role });
-
-		return { accessToken };
+		const tokens = await RefreshTokenService.refresh(refreshToken);
+		return { accessToken: tokens.accessToken };
 	}
 }
 

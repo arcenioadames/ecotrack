@@ -17,9 +17,61 @@ model User {
   acceptedPolicy   Boolean
   policyAcceptedAt DateTime?
   policyVersion    String?
+  policyAcceptedIp String?
+  anonymizedAt     DateTime?
+  anonymizedReason String?
   isActive         Boolean   @default(true)
   createdAt        DateTime  @default(now())
   updatedAt        DateTime  @updatedAt
+
+  policyAcceptanceAudits   PolicyAcceptanceAudit[]
+  targetAnonymizationAudits UserAnonymizationAudit[] @relation("TargetUser")
+  actorAnonymizationAudits  UserAnonymizationAudit[] @relation("ActorUser")
+  refreshTokens            RefreshToken[]
+}
+
+model PolicyAcceptanceAudit {
+  id            String   @id @default(uuid())
+  userId        String
+  user          User     @relation(fields: [userId], references: [id], onDelete: Restrict)
+  policyVersion String
+  acceptedAt    DateTime
+  acceptedIp    String?
+  userAgent     String?
+  createdAt     DateTime @default(now())
+
+  @@index([userId, acceptedAt])
+}
+
+model UserAnonymizationAudit {
+  id            String   @id @default(uuid())
+  targetUserId  String
+  targetUser    User     @relation("TargetUser", fields: [targetUserId], references: [id], onDelete: Restrict)
+  actorUserId   String?
+  actorUser     User?    @relation("ActorUser", fields: [actorUserId], references: [id], onDelete: SetNull)
+  anonymizedAt  DateTime
+  anonymizedIp  String?
+  userAgent     String?
+  reason        String?
+  createdAt     DateTime @default(now())
+
+  @@index([targetUserId, anonymizedAt])
+}
+
+model RefreshToken {
+  id        String   @id @default(cuid())
+  userId    String
+  tokenHash String
+  expiresAt DateTime
+  revoked   Boolean  @default(false)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  user User @relation(fields: [userId], references: [id])
+
+  @@index([userId])
+  @@index([tokenHash])
+  @@index([expiresAt])
 }
 
 enum Role {

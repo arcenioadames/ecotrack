@@ -9,7 +9,22 @@ jest.mock("../../../prisma/client", () => ({
     user: {
       findUnique: jest.fn(),
       create: jest.fn(),
+      update: jest.fn(),
     },
+    policyAcceptanceAudit: {
+      create: jest.fn(),
+    },
+    userAnonymizationAudit: {
+      create: jest.fn(),
+    },
+    refreshToken: {
+      create: jest.fn(),
+      findFirst: jest.fn(),
+      update: jest.fn(),
+      updateMany: jest.fn(),
+      deleteMany: jest.fn(),
+    },
+    $transaction: jest.fn(),
   },
 }));
 
@@ -22,9 +37,45 @@ import bcrypt from "bcrypt";
 const mockPrisma = prisma as jest.Mocked<typeof prisma>;
 const mockBcrypt = bcrypt as jest.Mocked<typeof bcrypt>;
 
+function setupTransactionMock(): void {
+  const transactionMock = mockPrisma.$transaction as unknown as jest.Mock;
+  transactionMock.mockImplementation(async (handler: unknown) => {
+    return (handler as (tx: typeof mockPrisma) => Promise<unknown>)(mockPrisma);
+  });
+}
+
 describe("AuthService", () => {
   beforeEach(() => {
     jest.clearAllMocks();
+    mockPrisma.refreshToken.create.mockResolvedValue({
+      id: "rt-1",
+      userId: "user-123",
+      tokenHash: "hash",
+      expiresAt: new Date(),
+      revoked: false,
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    } as never);
+    mockPrisma.refreshToken.findFirst.mockResolvedValue({
+      id: "rt-1",
+      userId: "user-123",
+      tokenHash: "hash",
+      expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
+      revoked: false,
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    } as never);
+    mockPrisma.refreshToken.update.mockResolvedValue({
+      id: "rt-1",
+      userId: "user-123",
+      tokenHash: "hash",
+      expiresAt: new Date(),
+      revoked: true,
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    } as never);
+    mockPrisma.refreshToken.updateMany.mockResolvedValue({ count: 1 } as never);
+    mockPrisma.refreshToken.deleteMany.mockResolvedValue({ count: 0 } as never);
   });
 
   describe("register", () => {
@@ -40,15 +91,23 @@ describe("AuthService", () => {
       mockPrisma.user.findUnique.mockResolvedValue(null);
 
       mockBcrypt.hash.mockResolvedValue("hashed_password_123" as never);
+      setupTransactionMock();
 
       mockPrisma.user.create.mockResolvedValue({
         id: "user-123",
         name: "John Doe",
         email: "john@example.com",
         role: "STAFF",
+        acceptedPolicy: true,
+        policyAcceptedAt: new Date("2026-05-11T00:00:00.000Z"),
+        policyVersion: "1",
+        anonymizedAt: null,
+        anonymizedReason: null,
+        isActive: true,
         createdAt: new Date("2026-05-11T00:00:00.000Z"),
         updatedAt: new Date("2026-05-11T00:00:00.000Z"),
       } as never);
+      mockPrisma.policyAcceptanceAudit.create.mockResolvedValue({} as never);
 
       const result = await AuthService.register(validRegisterInput);
 
@@ -57,6 +116,12 @@ describe("AuthService", () => {
         name: "John Doe",
         email: "john@example.com",
         role: "STAFF",
+        acceptedPolicy: true,
+        policyAcceptedAt: new Date("2026-05-11T00:00:00.000Z"),
+        policyVersion: "1",
+        anonymizedAt: null,
+        anonymizedReason: null,
+        isActive: true,
         createdAt: new Date("2026-05-11T00:00:00.000Z"),
         updatedAt: new Date("2026-05-11T00:00:00.000Z"),
       });
@@ -72,6 +137,15 @@ describe("AuthService", () => {
           data: expect.objectContaining({
             role: "STAFF",
             passwordHash: "hashed_password_123",
+            policyAcceptedIp: null,
+          }),
+        }),
+      );
+      expect(mockPrisma.policyAcceptanceAudit.create).toHaveBeenCalledWith(
+        expect.objectContaining({
+          data: expect.objectContaining({
+            policyVersion: "1",
+            acceptedIp: null,
           }),
         }),
       );
@@ -80,14 +154,22 @@ describe("AuthService", () => {
     it("should allow ADMIN role when requested", async () => {
       mockPrisma.user.findUnique.mockResolvedValue(null);
       mockBcrypt.hash.mockResolvedValue("hashed_password_admin" as never);
+      setupTransactionMock();
       mockPrisma.user.create.mockResolvedValue({
         id: "user-admin",
         name: "Admin User",
         email: "admin@example.com",
         role: "ADMIN",
+        acceptedPolicy: true,
+        policyAcceptedAt: new Date("2026-05-11T00:00:00.000Z"),
+        policyVersion: "1",
+        anonymizedAt: null,
+        anonymizedReason: null,
+        isActive: true,
         createdAt: new Date("2026-05-11T00:00:00.000Z"),
         updatedAt: new Date("2026-05-11T00:00:00.000Z"),
       } as never);
+      mockPrisma.policyAcceptanceAudit.create.mockResolvedValue({} as never);
 
       const result = await AuthService.register({
         name: "Admin User",
@@ -134,14 +216,22 @@ describe("AuthService", () => {
     it("should preserve the requested STAFF role on create", async () => {
       mockPrisma.user.findUnique.mockResolvedValue(null);
       mockBcrypt.hash.mockResolvedValue("hashed_password" as never);
+      setupTransactionMock();
       mockPrisma.user.create.mockResolvedValue({
         id: "user-456",
         name: "John Doe",
         email: "john@example.com",
         role: "STAFF",
+        acceptedPolicy: true,
+        policyAcceptedAt: new Date(),
+        policyVersion: "1",
+        anonymizedAt: null,
+        anonymizedReason: null,
+        isActive: true,
         createdAt: new Date(),
         updatedAt: new Date(),
       } as never);
+      mockPrisma.policyAcceptanceAudit.create.mockResolvedValue({} as never);
 
       await AuthService.register(validRegisterInput);
 
@@ -170,6 +260,8 @@ describe("AuthService", () => {
         acceptedPolicy: true,
         policyAcceptedAt: new Date(),
         policyVersion: "1",
+        anonymizedAt: null,
+        anonymizedReason: null,
         createdAt: new Date(),
         updatedAt: new Date(),
       };
@@ -213,6 +305,8 @@ describe("AuthService", () => {
         acceptedPolicy: true,
         policyAcceptedAt: new Date(),
         policyVersion: "1",
+        anonymizedAt: null,
+        anonymizedReason: null,
         createdAt: new Date(),
         updatedAt: new Date(),
       };
@@ -234,6 +328,8 @@ describe("AuthService", () => {
         acceptedPolicy: true,
         policyAcceptedAt: new Date(),
         policyVersion: "1",
+        anonymizedAt: null,
+        anonymizedReason: null,
         createdAt: new Date(),
         updatedAt: new Date(),
       };
@@ -256,6 +352,8 @@ describe("AuthService", () => {
         acceptedPolicy: true,
         policyAcceptedAt: new Date(),
         policyVersion: "1",
+        anonymizedAt: null,
+        anonymizedReason: null,
         createdAt: new Date(),
         updatedAt: new Date(),
       };
