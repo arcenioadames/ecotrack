@@ -1,3 +1,4 @@
+/// <reference path="./types/express.d.ts" />
 import express from "express";
 import cors, { type CorsOptions } from "cors";
 import helmet from "helmet";
@@ -39,6 +40,11 @@ app.use(express.json());
 
 // Swagger documentation
 app.use("/api-docs", swaggerUi.serve, swaggerUi.setup(swaggerSpec));
+
+// Root route: redirect to API docs
+app.get("/", (_req, res) => {
+  res.redirect("/api-docs");
+});
 
 // Routes
 app.use("/auth", authRouter);
