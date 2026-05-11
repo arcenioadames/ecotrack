@@ -4,7 +4,9 @@
   "description": "",
   "main": "index.js",
   "scripts": {
-    "dev": "ts-node-dev src/server.ts",    "dev:api-docs": "echo \"API Docs available at http://localhost:3000/api-docs\" && npm run dev",    "build": "tsc",
+    "dev": "ts-node-dev src/server.ts",
+    "dev:api-docs": "echo \"API Docs available at http://localhost:3000/api-docs\" && npm run dev",
+    "build": "tsc",
     "start": "node dist/src/server.js",
     "test": "jest",
     "test:watch": "jest --watch",
@@ -13,7 +15,8 @@
     "lint:fix": "eslint . --ext .ts,.tsx --fix",
     "audit": "npm audit --audit-level=high",
     "prisma:generate": "prisma generate",
-    "prisma:migrate": "prisma migrate dev"
+    "prisma:migrate": "prisma migrate dev",
+    "db:seed": "ts-node-dev src/scripts/seed.ts"
   },
   "keywords": [],
   "author": "",
