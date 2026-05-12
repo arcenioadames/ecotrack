@@ -186,6 +186,204 @@ const options = {
             },
           },
         },
+        CreateCategoryRequest: {
+          type: "object",
+          required: ["name"],
+          properties: {
+            name: {
+              type: "string",
+              minLength: 3,
+              example: "Lácteos",
+            },
+            description: {
+              type: "string",
+              nullable: true,
+              example: "Productos refrigerados",
+            },
+          },
+        },
+        UpdateCategoryRequest: {
+          type: "object",
+          properties: {
+            name: {
+              type: "string",
+              minLength: 3,
+              example: "Panadería",
+            },
+            description: {
+              type: "string",
+              nullable: true,
+              example: "Productos secos",
+            },
+          },
+        },
+        CategoryResponse: {
+          type: "object",
+          properties: {
+            id: {
+              type: "string",
+            },
+            name: {
+              type: "string",
+            },
+            description: {
+              type: "string",
+              nullable: true,
+            },
+            productCount: {
+              type: "number",
+              example: 12,
+            },
+            createdAt: {
+              type: "string",
+              format: "date-time",
+            },
+            updatedAt: {
+              type: "string",
+              format: "date-time",
+            },
+          },
+        },
+        CreateProductRequest: {
+          type: "object",
+          required: ["name", "barcode", "expirationDate", "categoryId"],
+          properties: {
+            name: {
+              type: "string",
+              example: "Leche Entera 1L",
+            },
+            barcode: {
+              type: "string",
+              example: "7701234567890",
+            },
+            expirationDate: {
+              type: "string",
+              format: "date-time",
+              example: "2026-06-30T00:00:00.000Z",
+            },
+            categoryId: {
+              type: "string",
+              example: "cat_123",
+            },
+          },
+        },
+        UpdateProductRequest: {
+          type: "object",
+          properties: {
+            name: {
+              type: "string",
+            },
+            barcode: {
+              type: "string",
+            },
+            expirationDate: {
+              type: "string",
+              format: "date-time",
+            },
+            categoryId: {
+              type: "string",
+            },
+          },
+        },
+        ProductResponse: {
+          type: "object",
+          properties: {
+            id: {
+              type: "string",
+            },
+            name: {
+              type: "string",
+            },
+            barcode: {
+              type: "string",
+            },
+            expirationDate: {
+              type: "string",
+              format: "date-time",
+            },
+            category: {
+              type: "object",
+              properties: {
+                id: { type: "string" },
+                name: { type: "string" },
+                description: { type: "string", nullable: true },
+              },
+            },
+            createdBy: {
+              type: "string",
+            },
+            status: {
+              type: "string",
+              enum: ["OK", "EXPIRING", "EXPIRED"],
+            },
+            createdAt: {
+              type: "string",
+              format: "date-time",
+            },
+            updatedAt: {
+              type: "string",
+              format: "date-time",
+            },
+          },
+        },
+        AnalyticsDashboardResponse: {
+          type: "object",
+          properties: {
+            totalProducts: { type: "number" },
+            expiringProducts: { type: "number" },
+            expiredProducts: { type: "number" },
+            productsByCategory: {
+              type: "array",
+              items: {
+                type: "object",
+                properties: {
+                  categoryId: { type: "string" },
+                  categoryName: { type: "string" },
+                  count: { type: "number" },
+                },
+              },
+            },
+            inventoryStatusDistribution: {
+              type: "object",
+              properties: {
+                ok: { type: "number" },
+                expiring: { type: "number" },
+                expired: { type: "number" },
+              },
+            },
+          },
+        },
+        ExportProductsRequest: {
+          type: "object",
+          properties: {
+            format: {
+              type: "string",
+              enum: ["pdf", "excel"],
+              example: "pdf",
+            },
+            search: {
+              type: "string",
+              example: "leche",
+            },
+            categoryId: {
+              type: "string",
+              example: "cat_123",
+            },
+            expirationFrom: {
+              type: "string",
+              format: "date-time",
+            },
+            expirationTo: {
+              type: "string",
+              format: "date-time",
+            },
+            status: {
+              type: "string",
+              enum: ["expired", "all"],
+              example: "expired",
+            },
+          },
+        },
       },
     },
   },

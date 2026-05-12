@@ -28,6 +28,7 @@ model User {
   targetAnonymizationAudits UserAnonymizationAudit[] @relation("TargetUser")
   actorAnonymizationAudits  UserAnonymizationAudit[] @relation("ActorUser")
   refreshTokens            RefreshToken[]
+  products                 Product[]
 }
 
 model PolicyAcceptanceAudit {
@@ -72,6 +73,36 @@ model RefreshToken {
   @@index([userId])
   @@index([tokenHash])
   @@index([expiresAt])
+}
+
+model Category {
+  id          String   @id @default(cuid())
+  name        String   @unique
+  description String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  products Product[]
+}
+
+model Product {
+  id             String   @id @default(cuid())
+  name           String
+  barcode        String   @unique
+  expirationDate DateTime
+  categoryId     String
+  createdBy      String
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  category Category @relation(fields: [categoryId], references: [id], onDelete: Restrict)
+  creator  User     @relation(fields: [createdBy], references: [id], onDelete: Restrict)
+
+  @@index([name])
+  @@index([barcode])
+  @@index([expirationDate])
+  @@index([categoryId])
+  @@index([createdBy])
 }
 
 enum Role {

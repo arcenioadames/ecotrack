@@ -5,7 +5,10 @@ import morgan from "morgan";
 import swaggerUi from "swagger-ui-express";
 
 import authRouter from "./routes/auth.routes";
+import { analyticsRouter } from "./routes/analytics.routes";
+import categoryRouter from "./routes/category.routes";
 import { legalRouter } from "./routes/legal.routes";
+import { productsRouter } from "./routes/products.routes";
 import { privacyRouter } from "./routes/privacy.routes";
 import { swaggerSpec } from "./config/swagger";
 
@@ -76,7 +79,10 @@ app.get("/", (_req, res) => {
 
 // Routes
 app.use("/auth", basicApiProtection, authRouter);
+app.use("/analytics", basicApiProtection, analyticsRouter);
+app.use("/categories", basicApiProtection, categoryRouter);
 app.use("/legal", legalRouter);
+app.use("/products", basicApiProtection, productsRouter);
 app.use("/privacy", basicApiProtection, privacyRouter);
 
 // Health check
