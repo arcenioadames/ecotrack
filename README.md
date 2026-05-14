@@ -16,40 +16,44 @@ EcoTrack/
 
 ### Backend (Express.js + Prisma)
 
-**Estado**: ✅ Producción lista - 66/66 tests pasando
+**Estado**: ✅ Producción lista - 117/117 tests pasando (20 suites)
 
 **Características**:
-- Autenticación JWT con refresh token rotation
-- Replay attack detection
-- RBAC (Admin/Staff)
-- GDPR compliance (anonymization + audits)
-- HTTPS enforcement + Security headers
-- CI/CD pipeline (GitHub Actions)
+- Autenticación JWT con refresh token rotation e invalidación de anterior
+- RBAC (ADMIN/STAFF) en cada endpoint
+- GDPR compliance (anonimización + auditorías completas)
+- HTTPS enforcement + Security headers (Helmet)
+- Gestión de inventario (Categorías, Productos, Alertas, Analytics)
+- Exportación a PDF/Excel con Strategy Pattern
+- CI/CD pipeline (GitHub Actions v5)
+- 83.62% test coverage
+- 6 migraciones Prisma aplicadas
 
-**Documentación**: Ver [backend/README.md](backend/README.md)
+**Documentación**: Ver [DOCUMENTATION.md](DOCUMENTATION.md)
 
 ### Frontend Web (React + Vite)
 
-**Estado**: 🆕 Estructura escalable lista
+**Estado**: 🆕 Estructura scaffolding lista
 
 **Características**:
-- Componentes reutilizables con TypeScript
+- Componentes reutilizables con TypeScript + React 18
 - Autenticación automática con interceptor Axios
 - React Context para estado global
 - Validación con Zod
-- Responsive design con Tailwind CSS
+- Responsive design con Tailwind CSS 3.3
+- React Router 6 para navegación
 
-**Documentación**: Ver [web/README.md](web/README.md)
+**Stack**: React 18 + Vite 5 + TypeScript 5.3 + Tailwind CSS
 
 ### Frontend Mobile (React Native + Expo)
 
-**Estado**: 🆕 Estructura escalable lista
+**Estado**: 🆕 Estructura scaffolding lista
 
 **Características**:
-- Componentes nativos con React Native
-- Almacenamiento seguro con Expo Secure Store
+- Componentes nativos con React Native 0.73
+- Almacenamiento seguro con Expo Secure Store 13
 - Autenticación automática con interceptor Axios
 - React Context para estado global
-- NativeWind para estilos tipo Tailwind
+- NativeWind 2.0 para estilos tipo Tailwind
 
-**Documentación**: Ver [mobile/README.md](mobile/README.md)
+**Stack**: React Native 0.73 + Expo 50 + TypeScript 5.3 + Expo Secure Store

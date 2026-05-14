@@ -189,7 +189,7 @@ export const ProductRepository = {
       },
     });
 
-    const categoryIds = rows.map((row) => row.categoryId);
+    const categoryIds = rows.map((row: { categoryId: string }) => row.categoryId);
     const categories = categoryIds.length
       ? await prisma.category.findMany({
           where: {
@@ -204,13 +204,16 @@ export const ProductRepository = {
         })
       : [];
 
-    const categoryNameById = new Map(categories.map((category) => [category.id, category.name]));
+    const categoryNameById = new Map(
+      (categories as Array<{ id: string; name: string }>).map((category) => [category.id, category.name])
+    );
 
-    return rows.map((row) => ({
+    return rows.map((row: { categoryId: string; _count: { _all: number } }) => ({
       categoryId: row.categoryId,
       categoryName: categoryNameById.get(row.categoryId) ?? "Sin categoría",
       count: row._count._all,
     }));
+
   },
 
   buildExportableWhere(filters: ProductExportQueryInput) {

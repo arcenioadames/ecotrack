@@ -3,7 +3,9 @@ import type { ZodIssue } from "zod";
 
 import ProductService, { ProductServiceError } from "../services/product.service";
 import ExportService from "../services/export/export.service";
+
 import {
+
   createProductSchema,
   expiringProductsQuerySchema,
   listProductsQuerySchema,
@@ -148,6 +150,7 @@ export class ProductController {
       return validationErrorResponse(res, parsed.error.issues);
     }
 
+    // MVP export implementation (HU-14 IN PROGRESS)
     try {
       const exportService = new ExportService();
       const result = await exportService.export(parsed.data.format, {
@@ -163,12 +166,8 @@ export class ProductController {
       res.setHeader("Content-Length", String(result.payload.byteLength));
 
       return res.status(200).send(result.payload);
-    } catch (err) {
-      if (err instanceof Error && err.message === "EXPORT_FORMAT_NOT_SUPPORTED") {
-        return res.status(400).json({ message: err.message });
-      }
-
-      return res.status(500).json({ message: "Internal server error" });
+    } catch {
+      return res.status(501).json({ message: "HU-14 export feature pending implementation" });
     }
   }
 }

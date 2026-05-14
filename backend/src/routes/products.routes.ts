@@ -67,6 +67,7 @@ productsRouter.get("/expiring", authenticate, authorize("ADMIN", "STAFF"), Produ
  *       200:
  *         description: File download
  */
+// TODO HU-14: exportación PDF/Excel pendiente. Endpoint responde 501 por ahora.
 productsRouter.get("/export", authenticate, authorize("ADMIN"), ProductController.export);
 
 /**

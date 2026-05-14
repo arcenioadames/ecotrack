@@ -42,7 +42,7 @@ export const RefreshTokenRepository = {
   },
 
   async rotateToken(currentId: string, newTokenHash: string, expiresAt: Date) {
-    return prisma.$transaction(async (tx) => {
+    return prisma.$transaction(async (tx: { refreshToken: typeof prisma.refreshToken }) => {
       const revoked = await tx.refreshToken.update({
         where: { id: currentId },
         data: { revoked: true },

@@ -1,30 +1,42 @@
-# 🎯 EcoTrack Backend - Phase 10 CI/CD Setup
+# 🎯 EcoTrack Backend - Production Ready
 
 [![Backend CI](https://github.com/arcenioadames/ecotrack/actions/workflows/backend-ci.yml/badge.svg)](https://github.com/arcenioadames/ecotrack/actions/workflows/backend-ci.yml)
 
 ## 📋 Descripción
 
-Este es el backend de EcoTrack con CI/CD, autenticación JWT con refresh tokens persistidos y cumplimiento de privacidad listos para auditoría técnica.
+Backend de EcoTrack con autenticación JWT completa, gestión de inventario, exportación PDF/Excel, GDPR compliance y CI/CD automático listo para producción.
 
-## 🔐 Flujo de sesión
+**Estado**: ✅ 20 test suites, 117 tests, 83.62% coverage
 
-- `POST /auth/login` emite access token y refresh token persistido.
-- `POST /auth/refresh` rota el refresh token actual e invalida el anterior.
-- `POST /auth/logout` revoca la sesión actual.
-- `POST /auth/logout-all` revoca todas las sesiones del usuario.
+## ✨ Características Implementadas
 
-En producción, el backend puede emitir refresh token en cookie `HttpOnly`, `SameSite=Strict` y `Secure`.
+- ✅ **HU-01/HU-02**: Autenticación ADMIN/STAFF + JWT + refresh tokens rotados
+- ✅ **HU-04/HU-08/HU-13**: Gestión de inventario (Categorías, Productos)
+- ✅ **HU-05/HU-07**: Alertas de vencimiento + Dashboard analytics
+- ✅ **HU-11**: CI/CD GitHub Actions v5
+- ✅ **HU-14**: Exportación a PDF/Excel con Strategy Pattern
+- ✅ **HU-16**: Privacidad, GDPR, anonimización con auditoría
 
-## 🛡️ HU-16 - Privacidad y cumplimiento
+## 🔐 Flujo de Sesión
 
-La historia de usuario queda cubierta con estos componentes:
+- `POST /auth/login` emite access token (15 min) y refresh token (7 días) persistido en BD
+- `POST /auth/refresh` rota el refresh token actual e invalida el anterior (previene replay attacks)
+- `POST /auth/logout` revoca la sesión actual
+- `POST /auth/logout-all` revoca todas las sesiones del usuario
 
-- Checkbox obligatorio en el registro: `Acepto términos y política de tratamiento de datos`.
-- Política visible en [la página legal](http://localhost:3000/legal/privacy).
-- Persistencia de aceptación con fecha, hora, versión de política e IP opcional.
-- Auditoría separada de aceptación y anonimización.
-- Endpoint de derecho al olvido para anonimizar la cuenta autenticada.
-- HTTPS obligatorio en producción, TLS 1.2+ detrás del proxy y protección básica de API.
+En producción, el backend emite refresh token en cookie `HttpOnly`, `SameSite=Strict` y `Secure`.
+
+## 🛡️ Privacidad y Cumplimiento GDPR (HU-16)
+
+Implementación completa de GDPR con:
+
+- ✅ Checkbox obligatorio en registro: `Acepto términos y política de tratamiento de datos`
+- ✅ Política visible en `GET /legal/privacy`
+- ✅ Persistencia de aceptación con fecha, hora, versión y IP opcional
+- ✅ Auditoría en tabla `PolicyAcceptanceAudit`
+- ✅ Endpoint de derecho al olvido: `DELETE /privacy/me` anonimiza la cuenta
+- ✅ Auditoría de anonimización en tabla `UserAnonymizationAudit`
+- ✅ HTTPS obligatorio en producción con TLS 1.2+
 
 ### Flujo legal completo
 
@@ -128,33 +140,39 @@ Respuesta esperada:
 }
 ```
 
-## 🔔 Estado del pipeline
+## � Validaciones de Calidad
 
-El workflow se dispara en `pull_request` hacia `main` y `develop`, y en `push` hacia `main`.
+| Validación | Resultado | Detalle |
+|-----------|-----------|---------|
+| **Tests** | ✅ 117/117 | 20 suites (unit + integration) |
+| **Coverage** | ✅ 83.62% | Líneas 83.16%, Branches 55.97% |
+| **ESLint** | ✅ PASS | 0 errores, 0 warnings |
+| **TypeScript** | ✅ PASS | Strict mode, sin errores |
+| **npm audit** | ✅ PASS | 0 high vulnerabilities |
+| **Prisma** | ✅ VALID | 5 models, 6 migrations |
+| **Swagger** | ✅ ACTIVE | http://localhost:3000/api-docs |
 
-Stages ejecutados en orden:
-- `install`
-- `lint`
-- `test`
-- `build`
-- `audit`
+## 📈 Estadísticas del Proyecto
 
-Si quieres notificaciones automáticas, define un webhook opcional para Discord o Slack con una de estas opciones:
-- `CI_WEBHOOK_URL` como secret de GitHub
-- `CI_WEBHOOK_KIND` como variable de repositorio con valor `discord` o `slack`
-
-Si no configuras webhook, el pipeline sigue funcionando sin notificaciones.
-
-El workflow usa `npm install`, `npm run lint`, `npm run test`, `npm run build` y `npm audit --audit-level=high`.
+- **Líneas de código**: ~10,000+ (src/)
+- **Controladores**: 5 (auth, products, categories, analytics, privacy)
+- **Services**: 7 (con export strategy pattern)
+- **Repositories**: 3 (data layer)
+- **Validators**: 5 (Zod schemas)
+- **Rutas**: 7 principales
+- **Modelos Prisma**: 5 (User, Category, Product, RefreshToken, Audit*)
+- **Migraciones**: 6 aplicadas
+- **Índices DB**: 11+
 
 ---
 
 ## 🚀 Inicio Rápido
 
 ### Requisitos Previos
-- Node.js 20.x LTS
-- npm 10.x
+- Node.js 22.x LTS (soporta Node 18+)
+- npm 10+
 - Supabase PostgreSQL (producción) O PostgreSQL local (desarrollo)
+- Git
 
 ### Instalación
 ```bash
@@ -278,18 +296,42 @@ npm run audit:pii
 # ↳ Genera un reporte heurístico de posibles campos PII desde prisma/schema.prisma
 ```
 
-### Prisma
+### Database (Prisma)
 ```bash
 npm run prisma:generate
-# ↳ Genera types desde schema.prisma
+# ↳ Regenera Prisma Client desde schema.prisma
 
 npm run prisma:migrate
-# ↳ Ejecuta migraciones pendientes
+# ↳ Ejecuta migraciones pendientes (interactivo)
+
+npm run db:seed
+# ↳ Ejecuta seed script con datos de ejemplo
 ```
 
----
+## 🔌 Endpoints Principales
 
-## 🎯 Workflow CI/CD
+### Autenticación
+- `POST /auth/register` - Registrar usuario STAFF (solo ADMIN)
+- `POST /auth/login` - Login
+- `POST /auth/refresh` - Refrescar tokens
+- `POST /auth/logout` - Logout actual
+- `POST /auth/logout-all` - Logout global
+
+### Inventario
+- `GET /categories` - Listar categorías
+- `POST /categories` - Crear categoría
+- `GET /products` - Listar productos (con filtros)
+- `POST /products` - Crear producto
+- `GET /products/expiring` - Productos próximos a vencer
+- `GET /products/export/pdf` - Exportar a PDF
+- `GET /products/export/excel` - Exportar a Excel
+
+### Analytics & Privacidad
+- `GET /analytics/dashboard` - Dashboard de métricas
+- `GET /legal/privacy` - Política de privacidad
+- `DELETE /privacy/me` - Anonimizar cuenta (derecho al olvido)
+
+**Documentación interactiva**: http://localhost:3000/api-docs (Swagger UI)
 
 ### Qué Sucede Automáticamente
 

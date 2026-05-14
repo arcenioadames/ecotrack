@@ -163,7 +163,8 @@ export class ProductService {
 
   public static async listExpiring(days: number): Promise<ProductDto[]> {
     const items = await ProductRepository.findExpiring(days, new Date());
-    return items.map((item) => ({
+    return items.map((item: { expirationDate: Date } & Parameters<typeof mapProduct>[0]) => ({
+
       ...mapProduct(item),
       status: getInventoryStatus(item.expirationDate, days),
     }));

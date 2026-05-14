@@ -19,8 +19,8 @@ export class ExportService {
     const now = new Date();
 
     return products
-      .filter((product) => filters.status === "all" || product.expirationDate < now)
-      .map((product) => ({
+      .filter((product: { expirationDate: Date }) => filters.status === "all" || product.expirationDate < now)
+      .map((product: { id: string; name: string; barcode: string; category: { name: string }; expirationDate: Date }) => ({ 
         id: product.id,
         name: product.name,
         barcode: product.barcode,

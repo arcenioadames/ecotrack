@@ -69,7 +69,7 @@ export const UserRepository = {
   },
 
   async createUserAndSavePolicyAcceptance(input: CreateUserInput & { userAgent?: string | null }) {
-    return prisma.$transaction(async (tx) => {
+    return prisma.$transaction(async (tx: { user: typeof prisma.user; policyAcceptanceAudit: typeof prisma.policyAcceptanceAudit }) => {
       const user = await tx.user.create({
         data: {
           name: input.name,
@@ -121,7 +121,7 @@ export const UserRepository = {
   },
 
   async anonymizeUser(id: string, data: AnonymizeUserInput) {
-    return prisma.$transaction(async (tx) => {
+    return prisma.$transaction(async (tx: { user: typeof prisma.user; userAnonymizationAudit: typeof prisma.userAnonymizationAudit }) => {
       const updated = await tx.user.update({
         where: { id },
         data: {

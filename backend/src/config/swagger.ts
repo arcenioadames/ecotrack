@@ -384,6 +384,15 @@ const options = {
             },
           },
         },
+        ExportPendingResponse: {
+          type: "object",
+          properties: {
+            message: {
+              type: "string",
+              example: "HU-14 export feature pending implementation",
+            },
+          },
+        },
       },
     },
   },
