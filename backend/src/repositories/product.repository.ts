@@ -100,6 +100,9 @@ export const ProductRepository = {
         },
         ...(excludeId ? { id: { not: excludeId } } : {}),
       },
+      include: {
+        category: true,
+      },
     });
   },
 

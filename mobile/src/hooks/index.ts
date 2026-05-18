@@ -7,3 +7,6 @@ export type { ScannerStateReturn } from './useScannerState';
 export { useBarcodeScanner } from './useBarcodeScanner';
 export type { UseBarcodeScannerReturn } from './useBarcodeScanner';
 
+export { useProductLookup } from './useProductLookup';
+export type { UseProductLookupReturn } from './useProductLookup';
+

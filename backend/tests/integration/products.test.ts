@@ -135,6 +135,41 @@ describe("/products", () => {
     expect(response.body.product.id).toBe("prod-1");
   });
 
+  it("gets product by barcode", async () => {
+    mockPrisma.product.findFirst.mockResolvedValue({
+      id: "prod-2",
+      name: "Yogur",
+      barcode: "1234567890123",
+      expirationDate: new Date("2026-06-01T00:00:00.000Z"),
+      categoryId: "cat-1",
+      createdBy: "staff-1",
+      createdAt: new Date(),
+      updatedAt: new Date(),
+      category: {
+        id: "cat-1",
+        name: "Lácteos",
+        description: null,
+      },
+    } as never);
+
+    const response = await request(app)
+      .get("/products/barcode/1234567890123")
+      .set("Authorization", `Bearer ${adminToken}`);
+
+    expect(response.status).toBe(200);
+    expect(response.body.product.barcode).toBe("1234567890123");
+  });
+
+  it("returns 404 when barcode does not exist", async () => {
+    mockPrisma.product.findFirst.mockResolvedValue(null as never);
+
+    const response = await request(app)
+      .get("/products/barcode/0000000000000")
+      .set("Authorization", `Bearer ${adminToken}`);
+
+    expect(response.status).toBe(404);
+  });
+
   it("blocks STAFF update due role", async () => {
     const response = await request(app)
       .patch("/products/prod-1")

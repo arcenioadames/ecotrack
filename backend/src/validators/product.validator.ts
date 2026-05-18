@@ -8,6 +8,10 @@ export const productIdParamSchema = z.object({
   id: z.string().trim().min(1, { message: "Id de producto inválido" }),
 });
 
+export const productBarcodeParamSchema = z.object({
+  code: z.string().trim().min(1, { message: "Código de barras inválido" }),
+});
+
 export const createProductSchema = z.object({
   name: z.string().trim().min(3, { message: "El nombre debe tener al menos 3 caracteres" }).max(150),
   barcode: z.string().trim().min(3, { message: "El código de barras es obligatorio" }).max(120),

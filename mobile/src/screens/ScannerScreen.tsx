@@ -1,4 +1,4 @@
-import React, { useRef, useState } from 'react';
+import React, { useCallback, useRef, useState } from 'react';
 import {
   View,
   StyleSheet,
@@ -7,9 +7,18 @@ import {
   SafeAreaView,
   ActivityIndicator,
   Alert,
+  TextInput,
+  KeyboardAvoidingView,
+  Platform,
+  ScrollView,
 } from 'react-native';
 import { CameraView, BarcodeScanningResult } from 'expo-camera';
-import { useCameraPermissions, useScannerState, useBarcodeScanner } from '@hooks';
+import {
+  useCameraPermissions,
+  useScannerState,
+  useBarcodeScanner,
+  useProductLookup,
+} from '@hooks';
 import { BarcodeData } from '@types';
 
 /**
@@ -19,53 +28,53 @@ import { BarcodeData } from '@types';
  * - Escaneo en tiempo real con detección de formatos
  * - Debounce para evitar duplicados
  * - Validación de códigos de barras
- * - Visualización de estado y errores
+ * - Búsqueda de producto y fallback manual
  */
 export function ScannerScreen(): React.ReactElement {
   const { status, isLoading, error: permissionError, requestPermission } = useCameraPermissions();
-  const { state, errorMessage, setScanState, setError } = useScannerState();
+  const { setScanState, setError } = useScannerState();
   const cameraRef = useRef<CameraView>(null);
+  const [manualCode, setManualCode] = useState('');
+  const [isScanning, setIsScanning] = useState(false);
+
+  const {
+    product,
+    isLoading: isLookupLoading,
+    error: lookupError,
+    notFound,
+    lookupProduct,
+    clearLookupError,
+  } = useProductLookup();
+
+  const onBarcodeProcessed = useCallback(
+    async (barcode: BarcodeData): Promise<void> => {
+      setIsScanning(false);
+      setScanState('idle');
+      await lookupProduct(barcode.value);
+    },
+    [lookupProduct, setScanState],
+  );
+
   const { lastBarcode, error: barcodeError, handleBarcodeDetected, clearError } = useBarcodeScanner(
     500,
     onBarcodeProcessed,
   );
-  const [isScanning, setIsScanning] = useState(false);
 
-  /**
-   * Callback cuando un código de barras se procesa correctamente
-   */
-  function onBarcodeProcessed(barcode: BarcodeData): void {
-    setIsScanning(false);
-    setScanState('idle');
-    // Aquí se puede integrar con navegación o autocompletado (HU-03.3)
-    console.log('✅ Código escaneado:', barcode.value, `[${barcode.format}]`);
-  }
-
-  /**
-   * Maneja la detección nativa de código de barras desde expo-camera
-   */
   const handleBarcodeScan = (result: BarcodeScanningResult): void => {
     if (!result.barcodes || result.barcodes.length === 0) {
       return;
     }
 
     const barcode = result.barcodes[0];
-
-    // Validar que tenemos valor
     if (!barcode.value) {
       return;
     }
 
     setIsScanning(true);
     setScanState('processing');
-
-    // Procesar el código detectado
     handleBarcodeDetected(barcode.value);
   };
 
-  /**
-   * Maneja la solicitud de permisos
-   */
   const handleRequestPermission = async (): Promise<void> => {
     const granted = await requestPermission();
     if (!granted) {
@@ -78,9 +87,63 @@ export function ScannerScreen(): React.ReactElement {
     }
   };
 
-  /**
-   * Renderiza pantalla de espera (permisos en progreso)
-   */
+  const handleManualLookup = async (): Promise<void> => {
+    setScanState('processing');
+    await lookupProduct(manualCode);
+    setScanState('idle');
+  };
+
+  const renderManualFallback = (): React.ReactElement => (
+    <View style={styles.manualContainer}>
+      <Text style={styles.sectionTitle}>Ingresar código manualmente</Text>
+      <TextInput
+        style={styles.input}
+        placeholder="Ingrese código de barras"
+        placeholderTextColor="#999"
+        value={manualCode}
+        onChangeText={(value) => setManualCode(value)}
+        keyboardType="default"
+        autoCapitalize="characters"
+        autoCorrect={false}
+        returnKeyType="search"
+        onSubmitEditing={handleManualLookup}
+      />
+      <TouchableOpacity
+        style={[styles.primaryButton, styles.manualButton]}
+        onPress={handleManualLookup}
+        disabled={isLookupLoading || manualCode.trim().length === 0}
+      >
+        <Text style={styles.buttonText}>{isLookupLoading ? 'Buscando...' : 'Buscar producto'}</Text>
+      </TouchableOpacity>
+
+      {notFound && (
+        <View style={styles.alertBanner}>
+          <Text style={styles.alertText}>
+            No se encontró producto con ese código. Registra uno nuevo si lo deseas.
+          </Text>
+        </View>
+      )}
+
+      {lookupError && (
+        <View style={styles.errorBanner}>
+          <Text style={styles.errorText}>{lookupError}</Text>
+          <TouchableOpacity onPress={clearLookupError}>
+            <Text style={styles.errorDismiss}>Descartar</Text>
+          </TouchableOpacity>
+        </View>
+      )}
+
+      {product && (
+        <View style={styles.productCard}>
+          <Text style={styles.productTitle}>{product.name}</Text>
+          <Text style={styles.productMeta}>Código: {product.barcode}</Text>
+          <Text style={styles.productMeta}>Categoría: {product.category.name}</Text>
+          <Text style={styles.productMeta}>Vence: {new Date(product.expirationDate).toLocaleDateString('es-ES')}</Text>
+        </View>
+      )}
+    </View>
+  );
+
   const renderPendingPermissions = (): React.ReactElement => (
     <SafeAreaView style={styles.container}>
       <View style={styles.centerContent}>
@@ -90,12 +153,9 @@ export function ScannerScreen(): React.ReactElement {
     </SafeAreaView>
   );
 
-  /**
-   * Renderiza pantalla de permisos denegados
-   */
   const renderDeniedPermissions = (): React.ReactElement => (
     <SafeAreaView style={styles.container}>
-      <View style={styles.centerContent}>
+      <ScrollView contentContainerStyle={styles.centerContent}>
         <View style={styles.iconContainer}>
           <Text style={styles.iconText}>📷</Text>
         </View>
@@ -108,83 +168,80 @@ export function ScannerScreen(): React.ReactElement {
           <Text style={styles.buttonText}>Habilitar Cámara</Text>
         </TouchableOpacity>
 
-        <TouchableOpacity style={styles.secondaryButton} onPress={() => {}}>
-          <Text style={styles.secondaryButtonText}>Cancelar</Text>
-        </TouchableOpacity>
-      </View>
+        {renderManualFallback()}
+      </ScrollView>
     </SafeAreaView>
   );
 
-  /**
-   * Renderiza la pantalla del scanner con la cámara
-   */
   const renderScanner = (): React.ReactElement => (
     <SafeAreaView style={styles.container}>
-      <View style={styles.header}>
-        <Text style={styles.headerTitle}>Escanear Código de Barras</Text>
-        <Text style={styles.headerSubtitle}>Apunta la cámara al código de barras</Text>
-      </View>
+      <KeyboardAvoidingView
+        style={styles.container}
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+      >
+        <View style={styles.header}>
+          <Text style={styles.headerTitle}>Escanear Código de Barras</Text>
+          <Text style={styles.headerSubtitle}>Apunta la cámara al código de barras</Text>
+        </View>
 
-      <View style={styles.cameraContainer}>
-        <CameraView
-          ref={cameraRef}
-          style={styles.camera}
-          facing="back"
-          barcodeScannerSettings={{
-            barcodeTypes: ['ean13', 'upca', 'code128'],
-          }}
-          onBarcodeScanned={handleBarcodeScan}
-        >
-          <View style={styles.scannerOverlay}>
-            <View style={styles.corner} />
-            <View style={[styles.corner, styles.topRight]} />
-            <View style={[styles.corner, styles.bottomLeft]} />
-            <View style={[styles.corner, styles.bottomRight]} />
+        <View style={styles.cameraContainer}>
+          <CameraView
+            ref={cameraRef}
+            style={styles.camera}
+            facing="back"
+            barcodeScannerSettings={{
+              barcodeTypes: ['ean13', 'upca', 'code128'],
+            }}
+            onBarcodeScanned={handleBarcodeScan}
+          >
+            <View style={styles.scannerOverlay}>
+              <View style={styles.corner} />
+              <View style={[styles.corner, styles.topRight]} />
+              <View style={[styles.corner, styles.bottomLeft]} />
+              <View style={[styles.corner, styles.bottomRight]} />
+            </View>
+          </CameraView>
+        </View>
+
+        {isScanning && (
+          <View style={styles.scanningIndicator}>
+            <ActivityIndicator size="small" color="#4CAF50" />
+            <Text style={styles.scanningText}>Procesando código...</Text>
           </View>
-        </CameraView>
-      </View>
+        )}
 
-      {/* Estado de escaneo */}
-      {isScanning && (
-        <View style={styles.scanningIndicator}>
-          <ActivityIndicator size="small" color="#4CAF50" />
-          <Text style={styles.scanningText}>Procesando código...</Text>
-        </View>
-      )}
+        {lastBarcode && !isScanning && (
+          <View style={styles.successBanner}>
+            <Text style={styles.successText}>✅ Código detectado: {lastBarcode.value}</Text>
+            <Text style={styles.formatText}>[{lastBarcode.format.toUpperCase()}]</Text>
+          </View>
+        )}
 
-      {/* Mostrar código exitoso */}
-      {lastBarcode && !isScanning && (
-        <View style={styles.successBanner}>
-          <Text style={styles.successText}>✅ Código detectado: {lastBarcode.value}</Text>
-          <Text style={styles.formatText}>[{lastBarcode.format.toUpperCase()}]</Text>
-        </View>
-      )}
+        {barcodeError && (
+          <View style={styles.errorBanner}>
+            <Text style={styles.errorText}>{barcodeError.message}</Text>
+            <TouchableOpacity onPress={clearError}>
+              <Text style={styles.errorDismiss}>Descartar</Text>
+            </TouchableOpacity>
+          </View>
+        )}
 
-      {/* Mostrar errores de barcode */}
-      {barcodeError && (
-        <View style={styles.errorBanner}>
-          <Text style={styles.errorText}>{barcodeError.message}</Text>
-          <TouchableOpacity onPress={clearError}>
-            <Text style={styles.errorDismiss}>Descartar</Text>
+        {renderManualFallback()}
+
+        <View style={styles.footer}>
+          <TouchableOpacity
+            style={styles.cancelButton}
+            onPress={() => {
+              // Navegación será implementada más adelante
+            }}
+          >
+            <Text style={styles.cancelButtonText}>Cancelar</Text>
           </TouchableOpacity>
         </View>
-      )}
-
-      {/* Botones de acción */}
-      <View style={styles.footer}>
-        <TouchableOpacity
-          style={styles.cancelButton}
-          onPress={() => {
-            // Navegación será implementada más adelante
-          }}
-        >
-          <Text style={styles.cancelButtonText}>Cancelar</Text>
-        </TouchableOpacity>
-      </View>
+      </KeyboardAvoidingView>
     </SafeAreaView>
   );
 
-  // Flujo de permisos
   if (isLoading) {
     return renderPendingPermissions();
   }
@@ -197,7 +254,6 @@ export function ScannerScreen(): React.ReactElement {
     return renderScanner();
   }
 
-  // Fallback
   return renderPendingPermissions();
 }
 
@@ -330,6 +386,59 @@ const styles = StyleSheet.create({
     color: '#fff',
     fontWeight: '600',
   },
+  manualContainer: {
+    paddingHorizontal: 16,
+    paddingVertical: 16,
+    backgroundColor: '#121212',
+  },
+  sectionTitle: {
+    fontSize: 16,
+    color: '#fff',
+    fontWeight: '700',
+    marginBottom: 12,
+  },
+  input: {
+    backgroundColor: '#1f1f1f',
+    borderColor: '#333',
+    borderWidth: 1,
+    borderRadius: 10,
+    color: '#fff',
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    fontSize: 14,
+  },
+  manualButton: {
+    marginTop: 12,
+  },
+  alertBanner: {
+    marginTop: 14,
+    padding: 12,
+    borderRadius: 10,
+    backgroundColor: '#424242',
+  },
+  alertText: {
+    color: '#fff',
+    fontSize: 14,
+  },
+  productCard: {
+    marginTop: 16,
+    padding: 16,
+    borderRadius: 10,
+    backgroundColor: '#1d1d1d',
+    borderWidth: 1,
+    borderColor: '#333',
+  },
+  productTitle: {
+    fontSize: 16,
+    fontWeight: '700',
+    color: '#fff',
+    marginBottom: 8,
+  },
+  productMeta: {
+    fontSize: 14,
+    color: '#ccc',
+    marginBottom: 4,
+  },
   footer: {
     paddingVertical: 16,
     paddingHorizontal: 16,
@@ -396,47 +505,6 @@ const styles = StyleSheet.create({
     fontSize: 64,
   },
 });
-
-
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: '#000',
-  },
-  centerContent: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    paddingHorizontal: 24,
-  },
-  header: {
-    paddingVertical: 16,
-    paddingHorizontal: 16,
-    backgroundColor: '#1a1a1a',
-  },
-  headerTitle: {
-    fontSize: 20,
-    fontWeight: '700',
-    color: '#fff',
-    marginBottom: 4,
-  },
-  headerSubtitle: {
-    fontSize: 14,
-    color: '#aaa',
-  },
-  cameraContainer: {
-    flex: 1,
-    overflow: 'hidden',
-  },
-  camera: {
-    flex: 1,
-  },
-  scannerOverlay: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  corner: {
     position: 'absolute',
     width: 40,
     height: 40,
