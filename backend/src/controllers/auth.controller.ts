@@ -6,6 +6,7 @@ import {
 } from "../validators/auth.validator";
 import AuthService from "../services/auth.service";
 import RefreshTokenService from "../services/refresh-token.service";
+import UserRepository from "../repositories/user.repository";
 import { getRequestIpFromHeaders } from "../utils/ip";
 import { buildClearRefreshCookie, buildRefreshCookie, getRefreshTokenFromRequest, shouldUseRefreshCookie } from "../utils/cookie";
 
@@ -98,6 +99,21 @@ export class AuthController {
 
       return res.status(401).json({ message: "Invalid token" });
     }
+  }
+
+  public static async me(req: Request, res: Response): Promise<Response> {
+    const currentUserId = req.user?.sub;
+    if (!currentUserId) {
+      return res.status(401).json({ message: "Unauthorized" });
+    }
+
+    const user = await UserRepository.findById(currentUserId);
+    if (!user) {
+      return res.status(404).json({ message: "User not found" });
+    }
+
+    const { passwordHash, ...safeUser } = user as { passwordHash?: string };
+    return res.status(200).json({ user: safeUser });
   }
 
   public static async logout(req: Request, res: Response): Promise<Response> {

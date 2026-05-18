@@ -1,3 +1,5 @@
+/// <reference path="../globals.d.ts" />
+
 import { RequestHandler } from "express";
 import { verifyAccessToken, type Role } from "../utils/jwt";
 

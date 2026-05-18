@@ -126,3 +126,21 @@ export interface ApiError {
   statusCode: number;
   details?: string;
 }
+
+// ============================================================================
+// SCANNER DE CODIGOS DE BARRAS
+// ============================================================================
+
+export type BarcodeFormat = 'ean13' | 'upca' | 'code128' | 'unknown';
+
+export interface BarcodeData {
+  value: string;
+  format: BarcodeFormat;
+  timestamp: number;
+}
+
+export interface ScannerError {
+  code: 'permission_denied' | 'camera_error' | 'invalid_format' | 'unknown';
+  message: string;
+}
+

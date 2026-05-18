@@ -1,0 +1,34 @@
+{
+  "name": "ecotrack",
+  "version": "1.0.0",
+  "description": "EcoTrack - Plataforma de Rastreo Ambiental",
+  "scripts": {
+    "network-config": "node scripts/network-config.js",
+    "dev": "echo \"Usa: npm run dev:backend o npm run dev:mobile\"",
+    "dev:backend": "cd backend && npm run dev",
+    "dev:mobile": "cd mobile && npx expo start --lan",
+    "install:all": "npm run install:backend && npm run install:mobile && npm run install:web",
+    "install:backend": "cd backend && npm install",
+    "install:mobile": "cd mobile && npm install",
+    "install:web": "cd web && npm install",
+    "test:backend": "cd backend && npm test",
+    "lint:backend": "cd backend && npm run lint",
+    "clean": "cd mobile && rm -rf node_modules/.cache .expo && cd ../backend && rm -rf node_modules/.cache"
+  },
+  "keywords": [
+    "ecotrack",
+    "react-native",
+    "expo",
+    "express",
+    "typescript"
+  ],
+  "author": "EcoTrack Team",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/arcenioadames/ecotrack"
+  },
+  "dependencies": {
+    "expo": "^55.0.24"
+  }
+}

@@ -2,38 +2,42 @@
   "name": "ecotrack-mobile",
   "version": "1.0.0",
   "scripts": {
-    "dev": "expo start",
-    "build:ios": "eas build --platform ios",
+    "start": "expo start",
+    "start:lan": "node ./scripts/start-lan.js",
+    "start:tunnel": "expo start --tunnel",
+    "start:clear": "cross-env EXPO_DEBUG=1 expo start --clear",
+    "android": "expo run:android",
+    "ios": "expo run:ios",
+    "web": "expo start --web",
     "build:android": "eas build --platform android",
-    "preview": "expo start --web",
+    "build:preview": "eas build --platform android --profile preview",
+    "assets": "node generate-assets.js",
     "lint": "eslint . --ext .ts,.tsx",
-    "lint:fix": "eslint . --ext .ts,.tsx --fix"
+    "demo:check": "node ./scripts/demo-check.js"
   },
   "dependencies": {
-    "@react-navigation/native": "^6.1.0",
-    "@react-navigation/stack": "^6.3.0",
+    "@react-navigation/native": "^6.1.9",
+    "@react-navigation/native-stack": "^6.9.17",
     "axios": "^1.6.0",
     "expo": "^50.0.0",
-    "expo-secure-store": "^13.0.0",
-    "nativewind": "^2.0.0",
-    "react": "^18.2.0",
-    "react-native": "^0.73.0",
-    "react-native-safe-area-context": "^4.5.0",
-    "react-native-screens": "^3.20.0",
-    "react-native-web": "^0.19.0",
-    "tailwindcss": "^3.3.0",
-    "zod": "^4.4.3"
+    "expo-camera": "~14.1.0",
+    "expo-constants": "~15.4.6",
+    "expo-secure-store": "~12.8.1",
+    "react": "18.2.0",
+    "react-native": "0.73.6",
+    "react-native-gesture-handler": "~2.14.0",
+    "react-native-reanimated": "~3.6.2",
+    "react-native-safe-area-context": "4.8.2",
+    "react-native-screens": "~3.29.0"
   },
   "devDependencies": {
-    "@types/node": "^20.0.0",
-    "@types/react": "^18.2.0",
-    "@types/react-native": "^0.73.0",
-    "@typescript-eslint/eslint-plugin": "^6.10.0",
-    "@typescript-eslint/parser": "^6.10.0",
-    "eslint": "^8.52.0",
-    "eslint-plugin-react": "^7.37.5",
-    "eslint-plugin-react-hooks": "^7.1.1",
-    "eslint-plugin-react-native": "^5.0.0",
+    "@types/react": "~18.2.45",
+    "cross-env": "^7.0.3",
+    "eslint": "^8.57.1",
+    "sharp": "^0.34.5",
     "typescript": "^5.3.0"
+  },
+  "engines": {
+    "node": ">= 18.0.0"
   }
 }

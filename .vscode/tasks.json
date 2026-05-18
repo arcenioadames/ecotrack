@@ -1,0 +1,76 @@
+{
+  "version": "2.0.0",
+  "tasks": [
+    {
+      "label": "Backend Dev",
+      "type": "shell",
+      "command": "npm run dev",
+      "problemMatcher": [],
+      "group": "build",
+      "options": {
+        "cwd": "${workspaceFolder}/backend"
+      },
+      "presentation": {
+        "reveal": "always",
+        "panel": "dedicated"
+      }
+    },
+    {
+      "label": "Mobile Start LAN",
+      "type": "shell",
+      "command": "npm run start:lan",
+      "isBackground": true,
+      "problemMatcher": [],
+      "options": {
+        "cwd": "${workspaceFolder}/mobile"
+      },
+      "presentation": {
+        "reveal": "always",
+        "panel": "dedicated"
+      }
+    },
+    {
+      "label": "Mobile Start Tunnel",
+      "type": "shell",
+      "command": "npm run start:tunnel",
+      "isBackground": true,
+      "problemMatcher": [],
+      "options": {
+        "cwd": "${workspaceFolder}/mobile"
+      },
+      "presentation": {
+        "reveal": "always",
+        "panel": "dedicated"
+      }
+    },
+    {
+      "label": "Open Expo Firewall (Windows)",
+      "type": "shell",
+      "command": "powershell -ExecutionPolicy Bypass -File ${workspaceFolder}\\mobile\\scripts\\open-expo-firewall.ps1",
+      "problemMatcher": [],
+      "presentation": {
+        "reveal": "always",
+        "panel": "shared"
+      }
+    },
+    {
+      "label": "Demo Healthcheck",
+      "type": "shell",
+      "command": "npm run demo:check",
+      "problemMatcher": [],
+      "options": {
+        "cwd": "${workspaceFolder}/mobile"
+      },
+      "presentation": {
+        "reveal": "always",
+        "panel": "shared"
+      }
+    },
+    {
+      "label": "Full Demo Stack",
+      "dependsOrder": "sequence",
+      "dependsOn": ["Demo Healthcheck", "Backend Dev", "Mobile Start LAN"],
+      "problemMatcher": []
+    }
+  ]
+}

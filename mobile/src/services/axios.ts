@@ -1,9 +1,19 @@
 // ============================================================================
-// CONFIGURACION DE AXIOS CON INTERCEPTOR DE REFRESH TOKEN (REACT NATIVE)
+// CONFIGURACIÓN MEJORADA DE AXIOS PARA REACT NATIVE + EXPO
 // ============================================================================
 
-import axios, { AxiosInstance, AxiosError, AxiosResponse } from 'axios';
+import axios, { AxiosInstance, AxiosError, AxiosResponse, AxiosRequestConfig } from 'axios';
 import * as SecureStore from 'expo-secure-store';
+import Constants from 'expo-constants';
+import { Alert, Platform } from 'react-native';
+
+// ============================================================================
+// CONFIGURACIÓN DE RED
+// ============================================================================
+
+const NETWORK_CONFIG = {
+  TIMEOUT: parseInt(process.env.EXPO_PUBLIC_API_TIMEOUT || '15000', 10),
+};
 
 // ============================================================================
 // TIPOS
@@ -12,32 +22,89 @@ import * as SecureStore from 'expo-secure-store';
 export interface AxiosConfigOptions {
   baseURL: string;
   useSecureStore?: boolean;
+  enableLogging?: boolean;
 }
 
 interface PendingRequest {
-  config: any;
-  resolve: (value: AxiosResponse<any>) => void;
+  config: AxiosRequestConfig;
+  resolve: (value: AxiosResponse<any> | PromiseLike<AxiosResponse<any>>) => void;
   reject: (reason?: any) => void;
 }
 
 // ============================================================================
-// ESTADO GLOBAL DEL INTERCEPTOR
+// UTILIDADES DE RED
 // ============================================================================
 
-let isRefreshing = false;
-let failedQueue: PendingRequest[] = [];
+const isNetworkError = (error: AxiosError): boolean => {
+  return !error.response && error.code !== 'ECONNABORTED';
+};
 
-const processQueue = (error: AxiosError | null, _token: string | null = null) => {
-  failedQueue.forEach((prom) => {
-    if (error) {
-      prom.reject(error);
-    } else {
-      prom.resolve(prom.config);
+const isTimeoutError = (error: AxiosError): boolean => {
+  return error.code === 'ECONNABORTED' || error.message.includes('timeout');
+};
+
+const getErrorMessage = (error: AxiosError): string => {
+  if (isNetworkError(error)) {
+    return 'Sin conexión a internet. Verifica tu conexión WiFi.';
+  }
+  if (isTimeoutError(error)) {
+    return 'Tiempo de espera agotado. El servidor no responde.';
+  }
+  if (error.response?.status === 401) {
+    return 'Sesión expirada. Inicia sesión nuevamente.';
+  }
+  if (error.response?.status === 403) {
+    return 'No tienes permisos para esta acción.';
+  }
+  if (error.response?.status && error.response.status >= 500) {
+    return 'Error del servidor. Intenta nuevamente más tarde.';
+  }
+
+  const data = error.response?.data as any;
+  return data?.message || error.message || 'Error desconocido';
+};
+
+// ============================================================================
+// LOGGING PARA DEBUG
+// ============================================================================
+
+const logger = {
+  request: (config: AxiosRequestConfig) => {
+    if (process.env.EXPO_PUBLIC_DEBUG_API === 'true') {
+      console.log('🚀 API Request:', {
+        method: config.method?.toUpperCase(),
+        url: config.url,
+        baseURL: config.baseURL,
+        timeout: config.timeout,
+        headers: {
+          ...config.headers,
+          Authorization: config.headers?.Authorization ? '[PRESENT]' : '[MISSING]',
+        },
+      });
     }
-  });
+  },
 
-  isRefreshing = false;
-  failedQueue = [];
+  response: (response: AxiosResponse) => {
+    if (process.env.EXPO_PUBLIC_DEBUG_API === 'true') {
+      console.log('✅ API Response:', {
+        status: response.status,
+        url: response.config.url,
+        duration: Date.now() - (response.config as any).startTime,
+      });
+    }
+  },
+
+  error: (error: AxiosError) => {
+    if (process.env.EXPO_PUBLIC_DEBUG_API === 'true') {
+      console.log('❌ API Error:', {
+        message: error.message,
+        code: error.code,
+        status: error.response?.status,
+        url: error.config?.url,
+        data: error.response?.data,
+      });
+    }
+  },
 };
 
 // ============================================================================
@@ -110,93 +177,133 @@ const storage = {
 export const createAxiosInstance = (options: AxiosConfigOptions): AxiosInstance => {
   const instance = axios.create({
     baseURL: options.baseURL,
-    timeout: 10000,
+    timeout: NETWORK_CONFIG.TIMEOUT,
     headers: {
       'Content-Type': 'application/json',
+      Accept: 'application/json',
+      'User-Agent': `EcoTrack-Mobile/${Constants.expoConfig?.version || '1.0.0'} (${Platform.OS}; ${Platform.Version})`,
     },
+    validateStatus: (status) => status >= 200 && status < 300,
   });
 
-  // ========================================================================
-  // REQUEST INTERCEPTOR
-  // ========================================================================
+  let isRefreshing = false;
+  let failedQueue: PendingRequest[] = [];
+
+  const processQueue = (error: AxiosError | null, token: string | null = null) => {
+    failedQueue.forEach(({ config, resolve, reject }) => {
+      if (error) {
+        reject(error);
+        return;
+      }
+
+      config.headers = {
+        ...(config.headers as any),
+        Authorization: `Bearer ${token}`,
+      } as any;
+
+      resolve(instance(config));
+    });
+
+    failedQueue = [];
+    isRefreshing = false;
+  };
 
   instance.interceptors.request.use(
     async (config) => {
-      const accessToken = await storage.getAccessToken();
-      if (accessToken) {
-        config.headers.Authorization = `Bearer ${accessToken}`;
+      (config as any).startTime = Date.now();
+
+      if (options.useSecureStore) {
+        const accessToken = await storage.getAccessToken();
+        if (accessToken) {
+          config.headers = {
+            ...(config.headers as any),
+            Authorization: `Bearer ${accessToken}`,
+          } as any;
+        }
       }
+
+      logger.request(config);
       return config;
     },
-    (error) => Promise.reject(error)
+    (error) => {
+      logger.error(error);
+      return Promise.reject(error);
+    }
   );
 
-  // ========================================================================
-  // RESPONSE INTERCEPTOR
-  // ========================================================================
-
   instance.interceptors.response.use(
-    (response) => response,
-    async (error: AxiosError) => {
-      const originalRequest = error.config as any;
+    (response) => {
+      logger.response(response);
+      return response;
+    },
+    async (error) => {
+      logger.error(error);
+      const originalRequest = error.config as AxiosRequestConfig & { _retry?: boolean };
 
-      // Si no es 401 o ya reintentamos, rechazar
-      if (error.response?.status !== 401 || originalRequest._retry) {
+      if (isNetworkError(error)) {
+        Alert.alert('Sin Conexión', 'Verifica tu conexión a internet e intenta nuevamente.', [{ text: 'OK' }]);
         return Promise.reject(error);
       }
 
-      // Marcar que ya reintentamos
-      originalRequest._retry = true;
-
-      if (isRefreshing) {
-        // Encolar la solicitud mientras se refresca el token
-        return new Promise((resolve, reject) => {
-          failedQueue.push({
-            config: originalRequest,
-            resolve,
-            reject,
-          });
-        }).then((config) => instance(config as any));
+      if (isTimeoutError(error)) {
+        Alert.alert('Tiempo Agotado', 'El servidor está tardando en responder. Intenta nuevamente.', [{ text: 'OK' }]);
+        return Promise.reject(error);
       }
 
-      isRefreshing = true;
-
-      try {
-        // Obtener refresh token
-        const refreshToken = await storage.getRefreshToken();
-
-        // Solicitar nuevo access token
-        const refreshResponse = await instance.post('/auth/refresh', {
-          refreshToken: refreshToken || undefined,
-        });
-
-        const { accessToken: newAccessToken, refreshToken: newRefreshToken } = refreshResponse.data;
-
-        // Guardar tokens
-        await storage.setAccessToken(newAccessToken);
-        if (newRefreshToken) {
-          await storage.setRefreshToken(newRefreshToken);
+      if (error.response?.status === 401 && !originalRequest._retry) {
+        if (isRefreshing) {
+          return new Promise((resolve, reject) => {
+            failedQueue.push({ config: originalRequest, resolve, reject });
+          });
         }
 
-        // Actualizar header de autorización
-        instance.defaults.headers.common.Authorization = `Bearer ${newAccessToken}`;
-        originalRequest.headers.Authorization = `Bearer ${newAccessToken}`;
+        originalRequest._retry = true;
+        isRefreshing = true;
 
-        // Procesar cola de solicitudes en espera
-        processQueue(null, newAccessToken);
+        try {
+          if (options.useSecureStore) {
+            const refreshToken = await storage.getRefreshToken();
+            if (!refreshToken) {
+              throw new Error('No refresh token available');
+            }
 
-        // Reintentar solicitud original con nuevo token
-        return instance(originalRequest);
-      } catch (err) {
-        // Error en refresh token - limpiar y rechazar
-        await storage.removeAll();
-        delete instance.defaults.headers.common.Authorization;
+            const refreshResponse = await axios.post(`${options.baseURL}/auth/refresh`, {
+              refreshToken,
+            });
 
-        processQueue(err as AxiosError, null);
+            const { accessToken: newAccessToken, refreshToken: newRefreshToken } = refreshResponse.data;
 
-        // Lanzar evento de logout
-        throw new Error('Token refresh failed');
+            await storage.setAccessToken(newAccessToken);
+            if (newRefreshToken) {
+              await storage.setRefreshToken(newRefreshToken);
+            }
+
+            processQueue(null, newAccessToken);
+            originalRequest.headers = {
+              ...(originalRequest.headers as any),
+              Authorization: `Bearer ${newAccessToken}`,
+            } as any;
+            return instance(originalRequest);
+          }
+        } catch (refreshError) {
+          if (options.useSecureStore) {
+            await storage.removeAll();
+          }
+
+          processQueue(refreshError as AxiosError, null);
+          Alert.alert('Sesión Expirada', 'Tu sesión ha expirado. Inicia sesión nuevamente.', [{ text: 'OK' }]);
+          return Promise.reject(refreshError);
+        } finally {
+          isRefreshing = false;
+        }
       }
+
+      const errorMessage = getErrorMessage(error);
+      if (error.response?.status !== 401) {
+        Alert.alert('Error', errorMessage, [{ text: 'OK' }]);
+      }
+
+      return Promise.reject(error);
     }
   );
 
@@ -204,12 +311,28 @@ export const createAxiosInstance = (options: AxiosConfigOptions): AxiosInstance 
 };
 
 // ============================================================================
-// INSTANCIA DEFAULT (A USAR EN LA APLICACION)
+// INSTANCIA DEFAULT (A USAR EN LA APLICACIÓN)
 // ============================================================================
 
+const expoConfig = (Constants.expoConfig as any) || {};
+const apiUrl =
+  expoConfig.extra?.apiUrl ||
+  process.env.EXPO_PUBLIC_API_URL ||
+  'http://10.0.2.2:3000';
+
+if (__DEV__) {
+  console.log('🚀 EcoTrack Mobile - Configuración de API:');
+  console.log('   expoConfig.extra.apiUrl:', (expoConfig.extra as any)?.apiUrl);
+  console.log('   EXPO_PUBLIC_API_URL:', process.env.EXPO_PUBLIC_API_URL);
+  console.log('   Final apiUrl:', apiUrl);
+  console.log('   Debug mode:', process.env.EXPO_PUBLIC_DEBUG_API === 'true');
+  console.log('   Timeout:', NETWORK_CONFIG.TIMEOUT + 'ms');
+}
+
 export const apiClient = createAxiosInstance({
-  baseURL: process.env.EXPO_PUBLIC_API_URL || 'http://localhost:3000',
+  baseURL: apiUrl,
   useSecureStore: true,
+  enableLogging: process.env.EXPO_PUBLIC_DEBUG_API === 'true',
 });
 
 export { storage };

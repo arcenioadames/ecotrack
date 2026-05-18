@@ -26,12 +26,14 @@ if (process.env.NODE_ENV === "test" && process.env.DISABLE_TEST_ROUTES !== "1") 
 function corsOptions(): CorsOptions {
   const raw = process.env.CORS_ORIGIN?.trim();
   if (!raw) {
-    return {};
+    return { origin: false };
   }
+
   const list = raw.split(",").map((o) => o.trim()).filter(Boolean);
   if (list.length === 0) {
-    return {};
+    return { origin: false };
   }
+
   return { origin: list.length === 1 ? list[0] : list };
 }
 

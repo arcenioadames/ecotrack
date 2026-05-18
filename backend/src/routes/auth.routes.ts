@@ -118,6 +118,24 @@ authRouter.post("/refresh", AuthController.refresh);
 
 /**
  * @swagger
+ * /auth/me:
+ *   get:
+ *     summary: Get current authenticated user
+ *     description: Returns the authenticated user payload based on access token.
+ *     tags:
+ *       - Authentication
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Current user
+ *       401:
+ *         description: Unauthorized
+ */
+authRouter.get("/me", authenticate, AuthController.me);
+
+/**
+ * @swagger
  * /auth/logout:
  *   post:
  *     summary: Logout current session

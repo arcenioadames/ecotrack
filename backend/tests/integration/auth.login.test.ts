@@ -1,6 +1,6 @@
 import request from "supertest";
 import { describe, it, expect, beforeEach, jest } from "@jest/globals";
-import { generateRefreshToken } from "../../src/utils/jwt";
+import { generateRefreshToken, generateAccessToken } from "../../src/utils/jwt";
 
 jest.mock("../../prisma/client", () => ({
   prisma: {
@@ -102,6 +102,20 @@ describe("POST /auth/login, /auth/refresh, /auth/logout, /auth/logout-all", () =
     expect(typeof response.body.accessToken).toBe("string");
     expect(typeof response.body.refreshToken).toBe("string");
     expect(mockPrisma.refreshToken.create).toHaveBeenCalled();
+  });
+
+  it("returns current user profile with a valid access token", async () => {
+    mockAuthenticatedUser();
+    const accessToken = generateAccessToken({ sub: "user-123", role: "ADMIN" });
+
+    const response = await request(app)
+      .get("/auth/me")
+      .set("Authorization", `Bearer ${accessToken}`);
+
+    expect(response.status).toBe(200);
+    expect(response.body.user).toBeDefined();
+    expect(response.body.user.email).toBe("john@example.com");
+    expect(response.body.user.passwordHash).toBeUndefined();
   });
 
   it("returns 401 generic for non-existent email", async () => {
