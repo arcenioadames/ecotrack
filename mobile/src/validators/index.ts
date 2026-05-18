@@ -78,3 +78,66 @@ export const AuditFiltersSchema = z.object({
 });
 
 export type AuditFiltersFormData = z.infer<typeof AuditFiltersSchema>;
+
+// ============================================================================
+// ESCANEO DE CODIGOS DE BARRAS
+// ============================================================================
+
+import { detectBarcodeFormat, validateBarcodeChecksum } from '@services/barcode.service';
+
+export const BarcodeFormatSchema = z.enum(['ean13', 'upca', 'code128', 'unknown']).refine(
+  (format) => format !== 'unknown',
+  {
+    message: 'Formato de código de barras no soportado',
+  },
+);
+
+/**
+ * Validador base para un código de barras
+ * Valida:
+ * - Longitud mínima y máxima
+ * - Formato válido (EAN-13, UPC-A, Code128)
+ * - Checksum
+ */
+export const BarcodeSchema = z
+  .string()
+  .trim()
+  .min(3, 'Código de barras muy corto')
+  .max(128, 'Código de barras muy largo')
+  .refine(
+    (value) => {
+      const format = detectBarcodeFormat(value);
+      return format !== 'unknown';
+    },
+    {
+      message: 'Formato de código de barras no soportado. Usa EAN-13, UPC-A o Code128.',
+    },
+  )
+  .refine(
+    (value) => validateBarcodeChecksum(value),
+    {
+      message: 'Código de barras inválido: checksum no válido',
+    },
+  );
+
+/**
+ * Esquema para datos de código de barras escaneado
+ */
+export const ScannedBarcodeSchema = z.object({
+  value: BarcodeSchema,
+  format: BarcodeFormatSchema,
+  timestamp: z.number().positive('Timestamp debe ser positivo'),
+});
+
+export type ScannedBarcode = z.infer<typeof ScannedBarcodeSchema>;
+
+/**
+ * Esquema para errores de scanner
+ */
+export const ScannerErrorSchema = z.object({
+  code: z.enum(['permission_denied', 'camera_error', 'invalid_format', 'unknown']),
+  message: z.string().min(1, 'Mensaje de error requerido'),
+});
+
+export type ScannerErrorType = z.infer<typeof ScannerErrorSchema>;
+

@@ -3,3 +3,7 @@ export type { CameraPermissionState, UseCameraPermissionsReturn, PermissionStatu
 
 export { useScannerState } from './useScannerState';
 export type { ScannerStateReturn } from './useScannerState';
+
+export { useBarcodeScanner } from './useBarcodeScanner';
+export type { UseBarcodeScannerReturn } from './useBarcodeScanner';
+
