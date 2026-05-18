@@ -139,29 +139,5 @@ productsRouter.patch("/:id", authenticate, authorize("ADMIN"), ProductController
  */
 productsRouter.delete("/:id", authenticate, authorize("ADMIN"), ProductController.delete);
 
-/**
- * @swagger
- * /products/barcode/{code}:
- *   get:
- *     summary: Get product by barcode
- *     description: Finds a product by its barcode.
- *     tags:
- *       - Products
- *     security:
- *       - bearerAuth: []
- *     parameters:
- *       - in: path
- *         name: code
- *         required: true
- *         schema:
- *           type: string
- *     responses:
- *       200:
- *         description: Product found
- *       404:
- *         description: Product not found
- */
-productsRouter.get("/barcode/:code", authenticate, authorize("ADMIN", "STAFF"), ProductController.getByBarcode);
-
 export default productsRouter;
 

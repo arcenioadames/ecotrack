@@ -13,6 +13,8 @@
     "build:preview": "eas build --platform android --profile preview",
     "assets": "node generate-assets.js",
     "lint": "eslint . --ext .ts,.tsx",
+    "test": "jest --config jest.config.js --runInBand",
+    "test:watch": "jest --config jest.config.js --watch",
     "demo:check": "node ./scripts/demo-check.js"
   },
   "dependencies": {
@@ -32,10 +34,19 @@
     "zod": "^4.4.0"
   },
   "devDependencies": {
+    "@testing-library/jest-native": "^5.4.3",
+    "@testing-library/react": "^14.0.0",
+    "@testing-library/react-native": "^13.3.3",
+    "@types/jest": "^29.5.4",
     "@types/react": "~18.2.45",
     "cross-env": "^7.0.3",
     "eslint": "^8.57.1",
+    "jest": "^29.7.0",
+    "jest-environment-jsdom": "^30.4.1",
+    "react-dom": "^18.2.0",
+    "react-test-renderer": "^18.2.0",
     "sharp": "^0.34.5",
+    "ts-jest": "^29.1.0",
     "typescript": "^5.3.0"
   },
   "engines": {

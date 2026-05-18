@@ -33,6 +33,15 @@
       "@contexts/*": [
         "src/services/*"
       ],
+      "@hooks": [
+        "src/hooks/index.ts"
+      ],
+      "@hooks/*": [
+        "src/hooks/*"
+      ],
+      "@types": [
+        "src/types/index.ts"
+      ],
       "@types/*": [
         "src/types/*"
       ],

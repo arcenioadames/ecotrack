@@ -9,9 +9,11 @@ import {
   createProductSchema,
   expiringProductsQuerySchema,
   listProductsQuerySchema,
+  productBarcodeParamSchema,
   productIdParamSchema,
   updateProductSchema,
 } from "../validators/product.validator";
+
 import { exportProductsQuerySchema } from "../validators/export.validator";
 
 function validationErrorResponse(res: Response, issues: ZodIssue[]) {
@@ -144,6 +146,20 @@ export class ProductController {
     });
   }
 
+  public static async getByBarcode(req: Request, res: Response): Promise<Response> {
+    const parsedParams = productBarcodeParamSchema.safeParse(req.params);
+    if (!parsedParams.success) {
+      return validationErrorResponse(res, parsedParams.error.issues);
+    }
+
+    try {
+      const product = await ProductService.getByBarcode(parsedParams.data.code);
+      return res.status(200).json({ product });
+    } catch (err) {
+      return mapProductError(err, res);
+    }
+  }
+
   public static async export(req: Request, res: Response): Promise<Response> {
     const parsed = exportProductsQuerySchema.safeParse(req.query);
     if (!parsed.success) {
@@ -173,3 +189,4 @@ export class ProductController {
 }
 
 export default ProductController;
+

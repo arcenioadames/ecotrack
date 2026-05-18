@@ -68,7 +68,16 @@ function parseFilters(input: ListProductsQueryInput): ProductFilters {
 }
 
 export class ProductService {
+  public static async getByBarcode(code: string): Promise<ProductDto> {
+    const product = await ProductRepository.findByBarcode(code.trim());
+    if (!product) {
+      throw new ProductServiceError("PRODUCT_NOT_FOUND");
+    }
+    return mapProduct(product);
+  }
+
   public static async create(input: CreateProductInput, createdBy: string): Promise<ProductDto> {
+
     if (isExpirationDateInPast(input.expirationDate)) {
       throw new ProductServiceError("INVALID_EXPIRATION_DATE");
     }

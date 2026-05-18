@@ -12,14 +12,14 @@ import {
   Platform,
   ScrollView,
 } from 'react-native';
-import { CameraView, BarcodeScanningResult } from 'expo-camera';
+import { Camera, CameraType, BarCodeScanningResult } from 'expo-camera';
 import {
   useCameraPermissions,
   useScannerState,
   useBarcodeScanner,
   useProductLookup,
-} from '@hooks';
-import { BarcodeData } from '@types';
+} from '../hooks';
+import { BarcodeData } from '../types';
 
 /**
  * ScannerScreen - Pantalla de escaneo de códigos de barras
@@ -33,7 +33,7 @@ import { BarcodeData } from '@types';
 export function ScannerScreen(): React.ReactElement {
   const { status, isLoading, error: permissionError, requestPermission } = useCameraPermissions();
   const { setScanState, setError } = useScannerState();
-  const cameraRef = useRef<CameraView>(null);
+  const cameraRef = useRef<React.ElementRef<typeof Camera> | null>(null);
   const [manualCode, setManualCode] = useState('');
   const [isScanning, setIsScanning] = useState(false);
 
@@ -60,19 +60,14 @@ export function ScannerScreen(): React.ReactElement {
     onBarcodeProcessed,
   );
 
-  const handleBarcodeScan = (result: BarcodeScanningResult): void => {
-    if (!result.barcodes || result.barcodes.length === 0) {
-      return;
-    }
-
-    const barcode = result.barcodes[0];
-    if (!barcode.value) {
+  const handleBarcodeScan = (scanningResult: BarCodeScanningResult): void => {
+    if (!scanningResult.data) {
       return;
     }
 
     setIsScanning(true);
     setScanState('processing');
-    handleBarcodeDetected(barcode.value);
+    handleBarcodeDetected(scanningResult.data);
   };
 
   const handleRequestPermission = async (): Promise<void> => {
@@ -185,14 +180,14 @@ export function ScannerScreen(): React.ReactElement {
         </View>
 
         <View style={styles.cameraContainer}>
-          <CameraView
+          <Camera
             ref={cameraRef}
             style={styles.camera}
-            facing="back"
-            barcodeScannerSettings={{
-              barcodeTypes: ['ean13', 'upca', 'code128'],
+            type={CameraType.back}
+            barCodeScannerSettings={{
+              barCodeTypes: ['ean13', 'upca', 'code128'],
             }}
-            onBarcodeScanned={handleBarcodeScan}
+            onBarCodeScanned={handleBarcodeScan}
           >
             <View style={styles.scannerOverlay}>
               <View style={styles.corner} />
@@ -200,7 +195,7 @@ export function ScannerScreen(): React.ReactElement {
               <View style={[styles.corner, styles.bottomLeft]} />
               <View style={[styles.corner, styles.bottomRight]} />
             </View>
-          </CameraView>
+          </Camera>
         </View>
 
         {isScanning && (
@@ -438,144 +433,6 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: '#ccc',
     marginBottom: 4,
-  },
-  footer: {
-    paddingVertical: 16,
-    paddingHorizontal: 16,
-    backgroundColor: '#1a1a1a',
-    borderTopWidth: 1,
-    borderTopColor: '#333',
-  },
-  primaryButton: {
-    backgroundColor: '#4CAF50',
-    paddingVertical: 14,
-    paddingHorizontal: 24,
-    borderRadius: 8,
-    marginTop: 16,
-    alignItems: 'center',
-  },
-  buttonText: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: '#fff',
-  },
-  secondaryButton: {
-    borderWidth: 1,
-    borderColor: '#4CAF50',
-    paddingVertical: 14,
-    paddingHorizontal: 24,
-    borderRadius: 8,
-    marginTop: 12,
-    alignItems: 'center',
-  },
-  secondaryButtonText: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: '#4CAF50',
-  },
-  cancelButton: {
-    borderWidth: 1,
-    borderColor: '#666',
-    paddingVertical: 12,
-    paddingHorizontal: 24,
-    borderRadius: 8,
-    alignItems: 'center',
-  },
-  cancelButtonText: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: '#fff',
-  },
-  title: {
-    fontSize: 20,
-    fontWeight: '700',
-    color: '#fff',
-    marginTop: 16,
-  },
-  description: {
-    fontSize: 14,
-    color: '#aaa',
-    marginTop: 8,
-    textAlign: 'center',
-  },
-  iconContainer: {
-    marginBottom: 16,
-  },
-  iconText: {
-    fontSize: 64,
-  },
-});
-    position: 'absolute',
-    width: 40,
-    height: 40,
-    borderColor: '#4CAF50',
-    borderWidth: 3,
-    top: '25%',
-    left: '15%',
-  },
-  topRight: {
-    top: '25%',
-    left: 'auto',
-    right: '15%',
-    borderLeftWidth: 0,
-    borderBottomWidth: 0,
-    borderTopWidth: 3,
-    borderRightWidth: 3,
-  },
-  bottomLeft: {
-    top: 'auto',
-    bottom: '25%',
-    left: '15%',
-    borderTopWidth: 0,
-    borderRightWidth: 0,
-    borderBottomWidth: 3,
-    borderLeftWidth: 3,
-  },
-  bottomRight: {
-    top: 'auto',
-    bottom: '25%',
-    left: 'auto',
-    right: '15%',
-    borderWidth: 0,
-    borderBottomWidth: 3,
-    borderRightWidth: 3,
-  },
-  scanningIndicator: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingVertical: 12,
-    backgroundColor: 'rgba(76, 175, 80, 0.1)',
-    borderTopWidth: 1,
-    borderTopColor: '#4CAF50',
-  },
-  scanningText: {
-    marginLeft: 8,
-    fontSize: 14,
-    color: '#4CAF50',
-    fontWeight: '500',
-  },
-  errorBanner: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingVertical: 12,
-    paddingHorizontal: 16,
-    backgroundColor: '#f44336',
-    borderTopWidth: 1,
-    borderTopColor: '#d32f2f',
-  },
-  errorText: {
-    flex: 1,
-    fontSize: 14,
-    color: '#fff',
-    fontWeight: '500',
-  },
-  errorDismiss: {
-    marginLeft: 16,
-    fontSize: 12,
-    color: '#fff',
-    fontWeight: '600',
   },
   footer: {
     paddingVertical: 16,

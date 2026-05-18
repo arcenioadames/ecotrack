@@ -1,4 +1,4 @@
-import { BarcodeFormat, BarcodeData } from '@types';
+import { BarcodeFormat, BarcodeData } from '../types';
 
 /**
  * Servicio para validación y procesamiento de códigos de barras

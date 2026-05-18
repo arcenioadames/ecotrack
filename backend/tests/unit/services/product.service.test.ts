@@ -67,7 +67,14 @@ describe("ProductService", () => {
       createdBy: "user-1",
       createdAt: new Date(),
       updatedAt: new Date(),
-    });
+      category: {
+        id: "cat-1",
+        name: "Lácteos",
+        description: null,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      },
+    } as never);
 
     await expect(
       ProductService.create(
@@ -147,6 +154,37 @@ describe("ProductService", () => {
 
     const result = await ProductService.getById("prod-1");
     expect(result.id).toBe("prod-1");
+  });
+
+  it("gets product by barcode", async () => {
+    jest.spyOn(ProductRepository, "findByBarcode").mockResolvedValue({
+      id: "prod-2",
+      name: "Yogur",
+      barcode: "1234567890123",
+      expirationDate: new Date("2026-06-01T00:00:00.000Z"),
+      categoryId: "cat-1",
+      createdBy: "staff-1",
+      createdAt: new Date(),
+      updatedAt: new Date(),
+      category: {
+        id: "cat-1",
+        name: "Lácteos",
+        description: null,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      },
+    } as never);
+
+    const result = await ProductService.getByBarcode("1234567890123");
+    expect(result.barcode).toBe("1234567890123");
+  });
+
+  it("fails when barcode does not exist", async () => {
+    jest.spyOn(ProductRepository, "findByBarcode").mockResolvedValue(null);
+
+    await expect(ProductService.getByBarcode("0000000000000")).rejects.toStrictEqual(
+      new ProductServiceError("PRODUCT_NOT_FOUND"),
+    );
   });
 
   it("fails when product does not exist", async () => {

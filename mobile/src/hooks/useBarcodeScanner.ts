@@ -2,11 +2,11 @@ import { useState, useCallback, useRef, useEffect } from 'react';
 import {
   BarcodeData,
   ScannerError,
-} from '@types';
+} from '../types';
 import {
   processBarcodeData,
   isDuplicateBarcode,
-} from '@services/barcode.service';
+} from '../services/barcode.service';
 
 export interface UseBarcodeScannerReturn {
   lastBarcode: BarcodeData | null;
@@ -34,6 +34,7 @@ export function useBarcodeScanner(
 
   const debounceTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const previousBarcodeRef = useRef<BarcodeData | null>(null);
+  const pendingBarcodeRef = useRef<BarcodeData | null>(null);
 
   // Limpiar timeout al desmontar
   useEffect(() => {
@@ -52,6 +53,7 @@ export function useBarcodeScanner(
     setLastBarcode(null);
     setError(null);
     previousBarcodeRef.current = null;
+    pendingBarcodeRef.current = null;
     if (debounceTimeoutRef.current) {
       clearTimeout(debounceTimeoutRef.current);
       debounceTimeoutRef.current = null;
@@ -67,51 +69,66 @@ export function useBarcodeScanner(
 
       setIsProcessing(true);
 
-      // Aplicar debounce
-      debounceTimeoutRef.current = setTimeout(() => {
-        try {
-          // Procesar el código de barras
-          const processedBarcode = processBarcodeData(rawValue);
+      try {
+        // Procesar el código de barras tan pronto como llega
+        const processedBarcode = processBarcodeData(rawValue);
 
-          if (!processedBarcode) {
-            setError({
-              code: 'invalid_format',
-              message: `Formato de código inválido: ${rawValue}. Soportamos EAN-13, UPC-A y Code128.`,
-            });
-            setIsProcessing(false);
-            return;
-          }
-
-          // Verificar si es duplicado
-          if (isDuplicateBarcode(processedBarcode, previousBarcodeRef.current, debounceMs)) {
-            setError({
-              code: 'invalid_format',
-              message: 'Código duplicado detectado. Espera un momento para escanear de nuevo.',
-            });
-            setIsProcessing(false);
-            return;
-          }
-
-          // Actualizar estado
-          setLastBarcode(processedBarcode);
-          previousBarcodeRef.current = processedBarcode;
-          setError(null);
-
-          // Callback opcional
-          if (onBarcodeProcessed) {
-            onBarcodeProcessed(processedBarcode);
-          }
-
-          setIsProcessing(false);
-        } catch (err: unknown) {
-          const errorMessage = err instanceof Error ? err.message : 'Error desconocido';
+        if (!processedBarcode) {
           setError({
-            code: 'unknown',
-            message: errorMessage,
+            code: 'invalid_format',
+            message: `Formato de código inválido: ${rawValue}. Soportamos EAN-13, UPC-A y Code128.`,
           });
           setIsProcessing(false);
+          pendingBarcodeRef.current = null;
+          return;
         }
-      }, debounceMs);
+
+        // Detectar duplicados contra el último código aceptado
+        if (isDuplicateBarcode(processedBarcode, previousBarcodeRef.current, debounceMs)) {
+          setError({
+            code: 'invalid_format',
+            message: 'Código duplicado detectado. Espera un momento para escanear de nuevo.',
+          });
+          setIsProcessing(false);
+          pendingBarcodeRef.current = null;
+          return;
+        }
+
+        pendingBarcodeRef.current = processedBarcode;
+        setError(null);
+
+        debounceTimeoutRef.current = setTimeout(() => {
+          const barcodeToProcess = pendingBarcodeRef.current;
+
+          if (!barcodeToProcess) {
+            setIsProcessing(false);
+            return;
+          }
+
+          const finalizedBarcode: BarcodeData = {
+            ...barcodeToProcess,
+            timestamp: Date.now(),
+          };
+
+          setLastBarcode(finalizedBarcode);
+          previousBarcodeRef.current = finalizedBarcode;
+          pendingBarcodeRef.current = null;
+
+          if (onBarcodeProcessed) {
+            onBarcodeProcessed(finalizedBarcode);
+          }
+
+          setIsProcessing(false);
+        }, debounceMs);
+      } catch (err: unknown) {
+        const errorMessage = err instanceof Error ? err.message : 'Error desconocido';
+        setError({
+          code: 'unknown',
+          message: errorMessage,
+        });
+        setIsProcessing(false);
+        pendingBarcodeRef.current = null;
+      }
     },
     [debounceMs, onBarcodeProcessed],
   );
