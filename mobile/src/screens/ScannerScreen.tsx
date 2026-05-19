@@ -39,10 +39,9 @@ interface ScannerScreenProps {
 
 export function ScannerScreen({ navigation }: ScannerScreenProps): React.ReactElement {
   const { status, isLoading, error: permissionError, requestPermission } = useCameraPermissions();
-  const { setScanState, setError } = useScannerState();
+  const { state: scannerState, setScanState, setError } = useScannerState();
   const cameraRef = useRef<React.ElementRef<typeof Camera> | null>(null);
   const [manualCode, setManualCode] = useState('');
-  const [isScanning, setIsScanning] = useState(false);
 
   const {
     product,
@@ -55,25 +54,31 @@ export function ScannerScreen({ navigation }: ScannerScreenProps): React.ReactEl
 
   const onBarcodeProcessed = useCallback(
     async (barcode: BarcodeData): Promise<void> => {
-      setIsScanning(false);
-      setScanState('idle');
+      setScanState('processing');
       await lookupProduct(barcode.value);
+      setScanState('idle');
     },
     [lookupProduct, setScanState],
   );
 
-  const { lastBarcode, error: barcodeError, handleBarcodeDetected, clearError } = useBarcodeScanner(
-    500,
-    onBarcodeProcessed,
-  );
+  const {
+    lastBarcode,
+    isProcessing: isBarcodeProcessing,
+    error: barcodeError,
+    handleBarcodeDetected,
+    clearError,
+  } = useBarcodeScanner(500, onBarcodeProcessed);
 
   const handleBarcodeScan = (scanningResult: BarCodeScanningResult): void => {
+    if (isBarcodeProcessing || scannerState === 'processing' || scannerState === 'scanning') {
+      return;
+    }
+
     if (!scanningResult.data) {
       return;
     }
 
-    setIsScanning(true);
-    setScanState('processing');
+    setScanState('scanning');
     handleBarcodeDetected(scanningResult.data);
   };
 
@@ -212,7 +217,7 @@ export function ScannerScreen({ navigation }: ScannerScreenProps): React.ReactEl
             barCodeScannerSettings={{
               barCodeTypes: ['ean13', 'upca', 'code128'],
             }}
-            onBarCodeScanned={handleBarcodeScan}
+            onBarCodeScanned={isBarcodeProcessing ? undefined : handleBarcodeScan}
           >
             <View style={styles.scannerOverlay}>
               <View style={styles.corner} />
@@ -223,14 +228,16 @@ export function ScannerScreen({ navigation }: ScannerScreenProps): React.ReactEl
           </Camera>
         </View>
 
-        {isScanning && (
+        {(isBarcodeProcessing || scannerState === 'scanning') && (
           <View style={styles.scanningIndicator}>
             <ActivityIndicator size="small" color="#4CAF50" />
-            <Text style={styles.scanningText}>Procesando código...</Text>
+            <Text style={styles.scanningText}>
+              {scannerState === 'scanning' ? 'Detectando código...' : 'Procesando código...'}
+            </Text>
           </View>
         )}
 
-        {lastBarcode && !isScanning && (
+        {lastBarcode && !isBarcodeProcessing && (
           <View style={styles.successBanner}>
             <Text style={styles.successText}>✅ Código detectado: {lastBarcode.value}</Text>
             <Text style={styles.formatText}>[{lastBarcode.format.toUpperCase()}]</Text>
