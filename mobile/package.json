@@ -18,6 +18,8 @@
     "demo:check": "node ./scripts/demo-check.js"
   },
   "dependencies": {
+    "@hookform/resolvers": "^5.2.2",
+    "@react-native-picker/picker": "^2.11.4",
     "@react-navigation/native": "^6.1.9",
     "@react-navigation/native-stack": "^6.9.17",
     "axios": "^1.6.0",
@@ -26,6 +28,7 @@
     "expo-constants": "~15.4.6",
     "expo-secure-store": "~12.8.1",
     "react": "18.2.0",
+    "react-hook-form": "^7.76.0",
     "react-native": "0.73.6",
     "react-native-gesture-handler": "~2.14.0",
     "react-native-reanimated": "~3.6.2",

@@ -94,6 +94,13 @@ export function DashboardScreen({ navigation }: any) {
 
         <TouchableOpacity
           style={[styles.actionButton, styles.actionButtonSecondary]}
+          onPress={() => navigation.navigate('Scanner')}
+        >
+          <Text style={styles.actionButtonText}>Escanear Producto</Text>
+        </TouchableOpacity>
+
+        <TouchableOpacity
+          style={[styles.actionButton, styles.actionButtonSecondary]}
           onPress={() => navigation.navigate('Expiring')}
         >
           <Text style={styles.actionButtonText}>Próximos a Vencer</Text>

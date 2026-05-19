@@ -1,10 +1,16 @@
 module.exports = {
-  preset: 'ts-jest',
   testEnvironment: 'jsdom',
   transform: {
-    '^.+\\.(ts|tsx)$': ['ts-jest', { tsconfig: 'tsconfig.json' }],
+    '^.+\\.[jt]sx?$': 'babel-jest',
   },
-  moduleFileExtensions: ['ts', 'tsx', 'js', 'jsx', 'json'],
+  transformIgnorePatterns: [
+    'node_modules/(?!(react-native|@react-native|@react-navigation|@react-native-picker|expo|expo-camera|@expo|unimodules|@unimodules|react-native-gesture-handler|react-native-reanimated)/)',
+  ],
+  globals: {
+    __DEV__: true,
+  },
+  setupFilesAfterEnv: ['<rootDir>/jest.setup.ts'],
+  moduleFileExtensions: ['ts', 'tsx', 'js', 'jsx', 'json', 'android.js', 'ios.js', 'native.js'],
   testMatch: ['**/?(*.)+(spec|test).{ts,tsx}'],
   moduleNameMapper: {
     '^@/(.*)$': '<rootDir>/src/$1',
