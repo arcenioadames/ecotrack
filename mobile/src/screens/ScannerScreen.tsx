@@ -30,7 +30,14 @@ import { BarcodeData } from '../types';
  * - Validación de códigos de barras
  * - Búsqueda de producto y fallback manual
  */
-export function ScannerScreen(): React.ReactElement {
+interface ScannerScreenProps {
+  navigation: {
+    navigate: (screen: string, params?: Record<string, unknown>) => void;
+    goBack: () => void;
+  };
+}
+
+export function ScannerScreen({ navigation }: ScannerScreenProps): React.ReactElement {
   const { status, isLoading, error: permissionError, requestPermission } = useCameraPermissions();
   const { setScanState, setError } = useScannerState();
   const cameraRef = useRef<React.ElementRef<typeof Camera> | null>(null);
@@ -88,6 +95,17 @@ export function ScannerScreen(): React.ReactElement {
     setScanState('idle');
   };
 
+  const handleRegisterProduct = (barcode: string): void => {
+    const normalizedBarcode = barcode.trim();
+    if (!normalizedBarcode) {
+      return;
+    }
+
+    navigation.navigate('ProductRegistration', { barcode: normalizedBarcode });
+  };
+
+  const registerBarcode = lastBarcode?.value || manualCode.trim();
+
   const renderManualFallback = (): React.ReactElement => (
     <View style={styles.manualContainer}>
       <Text style={styles.sectionTitle}>Ingresar código manualmente</Text>
@@ -116,6 +134,13 @@ export function ScannerScreen(): React.ReactElement {
           <Text style={styles.alertText}>
             No se encontró producto con ese código. Registra uno nuevo si lo deseas.
           </Text>
+          <TouchableOpacity
+            style={[styles.secondaryButton, styles.registerButton]}
+            onPress={() => handleRegisterProduct(registerBarcode)}
+            disabled={!registerBarcode}
+          >
+            <Text style={styles.buttonText}>Registrar producto</Text>
+          </TouchableOpacity>
         </View>
       )}
 
@@ -227,7 +252,7 @@ export function ScannerScreen(): React.ReactElement {
           <TouchableOpacity
             style={styles.cancelButton}
             onPress={() => {
-              // Navegación será implementada más adelante
+              navigation.goBack();
             }}
           >
             <Text style={styles.cancelButtonText}>Cancelar</Text>
@@ -462,6 +487,10 @@ const styles = StyleSheet.create({
     borderRadius: 8,
     marginTop: 12,
     alignItems: 'center',
+  },
+  registerButton: {
+    marginTop: 10,
+    backgroundColor: 'transparent',
   },
   secondaryButtonText: {
     fontSize: 16,
