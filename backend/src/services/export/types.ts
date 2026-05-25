@@ -5,7 +5,8 @@ export type ExportableProductDto = {
   name: string;
   barcode: string;
   categoryName: string;
-  expirationDate: Date;
+  // JSON-safe representation
+  expirationDate: string;
   status: InventoryStatus;
 };
 

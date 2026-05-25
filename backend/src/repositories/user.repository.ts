@@ -27,6 +27,15 @@ export type AnonymizeUserInput = {
 };
 
 export const UserRepository = {
+  async countAdmins() {
+    return prisma.user.count({
+      where: {
+        role: "ADMIN",
+      },
+    });
+  },
+
+
   async findByEmail(email: string) {
     return prisma.user.findUnique({
       where: { email },

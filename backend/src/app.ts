@@ -11,6 +11,8 @@ import { legalRouter } from "./routes/legal.routes";
 import { productsRouter } from "./routes/products.routes";
 import { privacyRouter } from "./routes/privacy.routes";
 import { swaggerSpec } from "./config/swagger";
+import { userRouter } from "./routes/user.routes";
+
 
 import { registerTestingRoutes } from "./routes/testing.routes";
 import { basicApiProtection, requireHttps } from "./middlewares/security.middleware";
@@ -64,11 +66,16 @@ app.use(
     },
   }),
 );
-app.use(requireHttps);
+// requireHttps rompe llamadas desde desarrollo (HTTP). Solo habilitarlo en producción.
+if (process.env.NODE_ENV === "production") {
+  app.use(requireHttps);
+}
+
 // Morgan: no en producción ni en tests; en local suele faltar NODE_ENV → se considera dev
 if (process.env.NODE_ENV !== "production" && process.env.NODE_ENV !== "test") {
   app.use(morgan("dev"));
 }
+
 app.use(express.json());
 
 // Swagger documentation
@@ -86,6 +93,8 @@ app.use("/categories", basicApiProtection, categoryRouter);
 app.use("/legal", legalRouter);
 app.use("/products", basicApiProtection, productsRouter);
 app.use("/privacy", basicApiProtection, privacyRouter);
+app.use("/users", basicApiProtection, userRouter);
+
 
 // Health check
 app.get("/health", (_req, res) => {

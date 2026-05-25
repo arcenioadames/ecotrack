@@ -57,7 +57,8 @@ export class ProductController {
       return validationErrorResponse(res, parsed.error.issues);
     }
 
-    const currentUserId = req.user?.sub;
+    const currentUserId = (req as unknown as Request & { user?: { sub: string; role: string } }).user?.sub;
+
     if (!currentUserId) {
       return res.status(401).json({ message: "Unauthorized" });
     }
@@ -166,7 +167,6 @@ export class ProductController {
       return validationErrorResponse(res, parsed.error.issues);
     }
 
-    // MVP export implementation (HU-14 IN PROGRESS)
     try {
       const exportService = new ExportService();
       const result = await exportService.export(parsed.data.format, {
@@ -182,8 +182,14 @@ export class ProductController {
       res.setHeader("Content-Length", String(result.payload.byteLength));
 
       return res.status(200).send(result.payload);
-    } catch {
-      return res.status(501).json({ message: "HU-14 export feature pending implementation" });
+    } catch (err) {
+      // Si el formato no existe u ocurre un error de generación, devolvemos 400/500 según corresponda.
+      if (err instanceof Error) {
+        if (err.message === "EXPORT_FORMAT_NOT_SUPPORTED") {
+          return res.status(400).json({ message: "Formato de exportación no soportado" });
+        }
+      }
+      return res.status(500).json({ message: "Error exportando el reporte" });
     }
   }
 }

@@ -20,12 +20,13 @@ export class ExportService {
 
     return products
       .filter((product: { expirationDate: Date }) => filters.status === "all" || product.expirationDate < now)
-      .map((product: { id: string; name: string; barcode: string; category: { name: string }; expirationDate: Date }) => ({ 
+      .map((product: { id: string; name: string; barcode: string; category: { name: string }; expirationDate: Date }) => ({
         id: product.id,
         name: product.name,
         barcode: product.barcode,
         categoryName: product.category.name,
-        expirationDate: product.expirationDate,
+        // JSON-safe
+        expirationDate: product.expirationDate.toISOString(),
         status: getInventoryStatus(product.expirationDate, 3),
       }));
   }

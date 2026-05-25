@@ -4,7 +4,8 @@ export type ProductDto = {
   id: string;
   name: string;
   barcode: string;
-  expirationDate: Date;
+  // JSON-safe representation (ISO 8601 string)
+  expirationDate: string;
   category: {
     id: string;
     name: string;

@@ -31,7 +31,7 @@ export class AuthController {
       return res.status(201).json({ message: "User created", user });
     } catch (err) {
       if (err instanceof Error && err.message === "EMAIL_ALREADY_EXISTS") {
-        return res.status(409).json({ message: err.message });
+        return res.status(409).json({ message: "EMAIL_ALREADY_EXISTS" });
       }
 
       return res.status(500).json({ message: "Internal server error" });
@@ -102,7 +102,8 @@ export class AuthController {
   }
 
   public static async me(req: Request, res: Response): Promise<Response> {
-    const currentUserId = req.user?.sub;
+    const currentUserId = (req as Request & { user?: { sub: string } }).user?.sub;
+
     if (!currentUserId) {
       return res.status(401).json({ message: "Unauthorized" });
     }

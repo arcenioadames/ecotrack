@@ -40,7 +40,7 @@ export class PdfExportStrategy implements ExportStrategy {
     } else {
       for (const item of items) {
         document.text(
-          `${item.name} | ${item.barcode} | ${item.categoryName} | ${item.expirationDate.toISOString()} | ${item.status}`,
+          `${item.name} | ${item.barcode} | ${item.categoryName} | ${item.expirationDate} | ${item.status}`,
         );
       }
     }

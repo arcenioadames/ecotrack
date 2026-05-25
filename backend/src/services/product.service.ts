@@ -39,7 +39,8 @@ function mapProduct(product: {
     id: product.id,
     name: product.name,
     barcode: product.barcode,
-    expirationDate: product.expirationDate,
+    // JSON-safe: always serialize Date -> ISO string
+    expirationDate: product.expirationDate.toISOString(),
     category: {
       id: product.category.id,
       name: product.category.name,

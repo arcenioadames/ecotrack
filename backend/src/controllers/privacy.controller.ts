@@ -17,7 +17,8 @@ export class PrivacyController {
       });
     }
 
-    const userId = req.user?.sub;
+    const userId = (req as unknown as Request & { user?: { sub: string; role: string } }).user?.sub;
+
     if (!userId) {
       return res.status(401).json({ message: "Unauthorized" });
     }

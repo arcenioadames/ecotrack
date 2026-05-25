@@ -25,6 +25,7 @@ export class ExcelExportStrategy implements ExportStrategy {
         barcode: item.barcode,
         categoryName: item.categoryName,
         expirationDate: item.expirationDate,
+
         status: item.status,
       })),
     );

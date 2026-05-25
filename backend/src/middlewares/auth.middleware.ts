@@ -1,6 +1,5 @@
-/// <reference path="../globals.d.ts" />
+import type { RequestHandler } from "express";
 
-import { RequestHandler } from "express";
 import { verifyAccessToken, type Role } from "../utils/jwt";
 
 export const authenticate: RequestHandler = (req, res, next) => {
@@ -17,8 +16,9 @@ export const authenticate: RequestHandler = (req, res, next) => {
 	const token = parts[1];
 
 	try {
-		const payload = verifyAccessToken(token);
-		req.user = { sub: payload.sub, role: payload.role };
+			const payload = verifyAccessToken(token);
+		(req as unknown as Request & { user?: { role: Role; sub: string } }).user = { sub: payload.sub, role: payload.role };
+
 		return next();
 	} catch {
 		return res.status(401).json({ message: "Invalid or expired token" });
@@ -27,7 +27,9 @@ export const authenticate: RequestHandler = (req, res, next) => {
 
 export const authorize = (...roles: Role[]): RequestHandler => {
 	return (req, res, next) => {
-		const user = req.user;
+		const user = (req as unknown as Request & { user?: { role: "ADMIN" | "STAFF"; sub: string } }).user;
+
+
 		if (!user) {
 			return res.status(401).json({ message: "Unauthorized" });
 		}
