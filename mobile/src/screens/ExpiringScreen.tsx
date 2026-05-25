@@ -1,65 +1,34 @@
-import { useEffect, useState } from 'react';
 import {
   View,
   Text,
   StyleSheet,
   ActivityIndicator,
   ScrollView,
-  Alert,
   RefreshControl,
-} from 'react-native';
-import { apiClient } from '../services/axios';
-
-interface ExpiringProduct {
-  id: string;
-  name: string;
-  category: { name: string };
-  expiryDate: string;
-  daysUntilExpiry: number;
-}
+} from "react-native";
+import { useExpiringProducts } from "../hooks/useExpiringProducts";
 
 export function ExpiringScreen() {
-  const [products, setProducts] = useState<ExpiringProduct[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [refreshing, setRefreshing] = useState(false);
-
-  useEffect(() => {
-    fetchExpiringProducts();
-  }, []);
-
-  const fetchExpiringProducts = async () => {
-    try {
-      setLoading(true);
-      const response = await apiClient.get('/products/expiring?days=3');
-      setProducts(response.data.items || []);
-    } catch (error: any) {
-      Alert.alert('Error', 'No se pudieron cargar los productos próximos a vencer');
-      console.error('Expiring products error:', error);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const onRefresh = async () => {
-    setRefreshing(true);
-    await fetchExpiringProducts();
-    setRefreshing(false);
-  };
+  const { products, loading, refreshing, refresh } = useExpiringProducts();
 
   const formatDate = (dateString: string) => {
     try {
       const date = new Date(dateString);
-      return date.toLocaleDateString('es-ES');
+      return date.toLocaleDateString("es-ES");
     } catch {
       return dateString;
     }
   };
 
-  const getUrgency = (days: number) => {
-    if (days <= 0) return { color: '#d32f2f', label: 'VENCIDO' };
-    if (days <= 3) return { color: '#d32f2f', label: 'URGENTE' };
-    if (days <= 7) return { color: '#f57c00', label: 'PRÓXIMO' };
-    return { color: '#2e7d32', label: 'OK' };
+  const getStatusColor = (status: string) => {
+    switch (status) {
+      case "EXPIRED":
+        return { color: "#d32f2f", label: "VENCIDO" };
+      case "EXPIRING":
+        return { color: "#d32f2f", label: "URGENTE" };
+      default:
+        return { color: "#2e7d32", label: "OK" };
+    }
   };
 
   if (loading) {
@@ -74,57 +43,47 @@ export function ExpiringScreen() {
     <ScrollView
       style={styles.container}
       refreshControl={
-        <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
+        <RefreshControl refreshing={refreshing} onRefresh={() => refresh()} />
       }
     >
       {products.length === 0 ? (
         <View style={styles.emptyContainer}>
-          <Text style={styles.emptyText}>✓ Todos los productos están en buen estado</Text>
+          <Text style={styles.emptyText}>
+            ✓ Todos los productos están en buen estado
+          </Text>
         </View>
       ) : (
         <View style={styles.listContainer}>
           {products.map((product) => {
-            const urgency = getUrgency(product.daysUntilExpiry);
+            const statusInfo = getStatusColor(product.status);
             return (
               <View key={product.id} style={styles.productCard}>
                 <View style={styles.header}>
                   <Text style={styles.productName}>{product.name}</Text>
                   <View
                     style={[
-                      styles.urgencyBadge,
-                      { backgroundColor: urgency.color },
+                      styles.statusBadge,
+                      { backgroundColor: statusInfo.color },
                     ]}
                   >
-                    <Text style={styles.urgencyText}>{urgency.label}</Text>
+                    <Text style={styles.statusText}>{statusInfo.label}</Text>
                   </View>
                 </View>
 
                 <Text style={styles.productCategory}>
-                  {product.category?.name || 'Sin categoría'}
+                  {product.category?.name || "Sin categoría"}
                 </Text>
 
                 <View style={styles.details}>
                   <View style={styles.detailRow}>
                     <Text style={styles.detailLabel}>Vence:</Text>
                     <Text style={styles.detailValue}>
-                      {formatDate(product.expiryDate)}
+                      {formatDate(product.expirationDate)}
                     </Text>
                   </View>
                   <View style={styles.detailRow}>
-                    <Text style={styles.detailLabel}>Días restantes:</Text>
-                    <Text
-                      style={[
-                        styles.detailValue,
-                        {
-                          color:
-                            product.daysUntilExpiry <= 3
-                              ? '#d32f2f'
-                              : '#2e7d32',
-                        },
-                      ]}
-                    >
-                      {product.daysUntilExpiry} días
-                    </Text>
+                    <Text style={styles.detailLabel}>Código:</Text>
+                    <Text style={styles.detailValue}>{product.barcode}</Text>
                   </View>
                 </View>
               </View>
@@ -181,16 +140,16 @@ const styles = StyleSheet.create({
     color: '#333',
     flex: 1,
   },
-  urgencyBadge: {
+  statusBadge: {
     paddingVertical: 4,
     paddingHorizontal: 8,
     borderRadius: 4,
     marginLeft: 8,
   },
-  urgencyText: {
-    color: '#fff',
+  statusText: {
+    color: "#fff",
     fontSize: 11,
-    fontWeight: '700',
+    fontWeight: "700",
   },
   productCategory: {
     fontSize: 13,

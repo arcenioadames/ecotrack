@@ -4,9 +4,21 @@ import { z } from 'zod';
 // Product Registration - Validaciones (HU-04.3)
 // ============================================================================
 
-const expirationDateSchema = z.coerce.date().refine(
-  (value) => !Number.isNaN(value.getTime()),
-  { message: 'La fecha de vencimiento es inválida' },
+const expirationDateSchema = z.preprocess(
+  (value) => {
+    if (value instanceof Date) {
+      return value.toISOString().slice(0, 10);
+    }
+    return value;
+  },
+  z
+    .string()
+    .trim()
+    .refine((value) => {
+      const parsed = new Date(value);
+      return !Number.isNaN(parsed.getTime());
+    }, { message: 'La fecha de vencimiento es inválida' })
+    .transform((value) => new Date(value)),
 );
 
 export const productRegistrationSchema = z

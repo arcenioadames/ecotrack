@@ -10,3 +10,6 @@ export type { UseBarcodeScannerReturn } from './useBarcodeScanner';
 export { useProductLookup } from './useProductLookup';
 export type { UseProductLookupReturn } from './useProductLookup';
 
+export { useExpiringProducts } from './useExpiringProducts';
+export type { ExpiringProduct } from './useExpiringProducts';
+
