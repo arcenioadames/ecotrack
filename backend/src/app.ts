@@ -66,10 +66,12 @@ app.use(
     },
   }),
 );
-// requireHttps rompe llamadas desde desarrollo (HTTP). Solo habilitarlo en producción.
-if (process.env.NODE_ENV === "production") {
+// requireHttps rompe llamadas desde desarrollo (HTTP).
+// Habilitar en producción o cuando se solicite explícitamente mediante flag.
+if (process.env.NODE_ENV === "production" || process.env.REQUIRE_HTTPS === "1") {
   app.use(requireHttps);
 }
+
 
 // Morgan: no en producción ni en tests; en local suele faltar NODE_ENV → se considera dev
 if (process.env.NODE_ENV !== "production" && process.env.NODE_ENV !== "test") {
