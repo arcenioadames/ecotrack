@@ -7,23 +7,34 @@ jest.mock('react-native', () => {
   const React = require('react');
 
   const Text = ({ children, ...props }: any) => React.createElement('span', props, children);
-  const View = ({ children, accessibilityLabel, testID, ...props }: any) =>
+  const View = ({ children, accessibilityLabel: _accessibilityLabel, testID: _testID, ...props }: any) =>
     React.createElement('div', props, children);
-  const ScrollView = ({ children, accessibilityLabel, testID, contentContainerStyle, ...props }: any) =>
-    React.createElement('div', props, children);
-  const KeyboardAvoidingView = ({ children, accessibilityLabel, testID, contentContainerStyle, ...props }: any) =>
-    React.createElement('div', props, children);
+  const ScrollView = ({
+    children,
+    accessibilityLabel: _accessibilityLabel,
+    testID: _testID,
+    contentContainerStyle: _contentContainerStyle,
+    ...props
+  }: any) => React.createElement('div', props, children);
+  const KeyboardAvoidingView = ({
+    children,
+    accessibilityLabel: _accessibilityLabel,
+    testID: _testID,
+    contentContainerStyle: _contentContainerStyle,
+    ...props
+  }: any) => React.createElement('div', props, children);
+
   const TextInput = ({
     value,
     onChangeText,
     placeholder,
     onBlur,
-    placeholderTextColor,
-    autoCorrect,
-    secureTextEntry,
-    keyboardType,
-    accessibilityLabel,
-    testID,
+    placeholderTextColor: _placeholderTextColor,
+    autoCorrect: _autoCorrect,
+    secureTextEntry: _secureTextEntry,
+    keyboardType: _keyboardType,
+    accessibilityLabel: _accessibilityLabel,
+    testID: _testID,
     ...props
   }: any) =>
     React.createElement('input', {
@@ -33,11 +44,12 @@ jest.mock('react-native', () => {
       onBlur,
       onChange: (event: any) => onChangeText?.(event.target.value),
     });
-  const TouchableOpacity = ({ children, onPress, accessibilityLabel, testID, ...props }: any) =>
+  const TouchableOpacity = ({ children, onPress, accessibilityLabel: _accessibilityLabel, testID: _testID, ...props }: any) =>
     React.createElement('button', {
       ...props,
       onClick: onPress,
     }, children);
+
   const ActivityIndicator = () => React.createElement('span', null, 'Loading');
 
   const StyleSheet = {

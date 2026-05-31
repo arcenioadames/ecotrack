@@ -1,4 +1,3 @@
-import { useEffect, useState } from 'react';
 import {
   View,
   Text,
@@ -8,42 +7,29 @@ import {
   TouchableOpacity,
   Alert,
 } from 'react-native';
-import { apiClient } from '../services/axios';
+
 import { useAuth } from '../services/auth-context';
+import { DashboardCards } from '../components/dashboard/DashboardCards';
+import { useDashboard } from '../hooks/useDashboard';
 
-interface DashboardData {
-  totalProducts: number;
-  productsExpiring: number;
-  productsExpired: number;
-}
+type DashboardScreenNavigation = {
+  navigate: (route: string) => void;
+};
 
-export function DashboardScreen({ navigation }: any) {
-  const [data, setData] = useState<DashboardData | null>(null);
-  const [loading, setLoading] = useState(true);
+type Props = {
+  navigation: DashboardScreenNavigation;
+};
+
+export function DashboardScreen({ navigation }: Props) {
+  const { data, loading, error, refresh } = useDashboard();
   const { logout } = useAuth();
-
-  useEffect(() => {
-    fetchDashboard();
-  }, []);
-
-  const fetchDashboard = async () => {
-    try {
-      setLoading(true);
-      const response = await apiClient.get('/analytics/dashboard');
-      setData(response.data);
-    } catch (error: any) {
-      Alert.alert('Error', 'No se pudo cargar el dashboard');
-      console.error('Dashboard error:', error);
-    } finally {
-      setLoading(false);
-    }
-  };
 
   const handleLogout = async () => {
     try {
       await logout();
-    } catch (error: any) {
-      Alert.alert('Error', 'Error al cerrar sesión');
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : 'Error al cerrar sesión';
+      Alert.alert('Error', message);
     }
   };
 
@@ -55,34 +41,51 @@ export function DashboardScreen({ navigation }: any) {
     );
   }
 
+  const isEmpty = !error && (!data || data.totalProducts === 0);
+
   return (
     <ScrollView style={styles.container}>
       <View style={styles.header}>
         <Text style={styles.greeting}>Bienvenido</Text>
-        <TouchableOpacity
-          style={styles.logoutButton}
-          onPress={handleLogout}
-        >
+        <TouchableOpacity style={styles.logoutButton} onPress={handleLogout}>
           <Text style={styles.logoutText}>Salir</Text>
         </TouchableOpacity>
       </View>
 
-      <View style={styles.cardsContainer}>
-        <View style={styles.card}>
-          <Text style={styles.cardLabel}>Total Productos</Text>
-          <Text style={styles.cardValue}>{data?.totalProducts || 0}</Text>
+      {error ? (
+        <View style={styles.centerContainer}>
+          <Text style={styles.errorTitle}>No se pudo cargar el dashboard</Text>
+          <Text style={styles.errorMessage}>{error}</Text>
+          <TouchableOpacity
+            style={styles.actionButton}
+            onPress={() => {
+              void refresh();
+            }}
+          >
+            <Text style={styles.actionButtonText}>Reintentar</Text>
+          </TouchableOpacity>
         </View>
+      ) : isEmpty ? (
+        <View style={styles.centerContainer}>
+          <Text style={styles.emptyTitle}>Sin datos para mostrar</Text>
+          <Text style={styles.emptyMessage}>
+            No hay productos registrados o la información aún no está disponible.
+          </Text>
+          <TouchableOpacity
+            style={styles.actionButton}
+            onPress={() => {
+              void refresh();
+            }}
+          >
+            <Text style={styles.actionButtonText}>Actualizar</Text>
+          </TouchableOpacity>
+        </View>
+      ) : (
+        <View>
+          <DashboardCards data={data!} />
+        </View>
+      )}
 
-        <View style={[styles.card, styles.cardWarning]}>
-          <Text style={styles.cardLabel}>Próximos a Vencer</Text>
-          <Text style={styles.cardValue}>{data?.productsExpiring || 0}</Text>
-        </View>
-
-        <View style={[styles.card, styles.cardDanger]}>
-          <Text style={styles.cardLabel}>Vencidos</Text>
-          <Text style={styles.cardValue}>{data?.productsExpired || 0}</Text>
-        </View>
-      </View>
 
       <View style={styles.buttonsContainer}>
         <TouchableOpacity
@@ -126,6 +129,8 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
+    paddingHorizontal: 16,
+    paddingVertical: 24,
   },
   header: {
     flexDirection: 'row',
@@ -153,32 +158,31 @@ const styles = StyleSheet.create({
     color: '#d32f2f',
     fontWeight: '500',
   },
-  cardsContainer: {
-    paddingHorizontal: 16,
-    paddingVertical: 20,
-  },
-  card: {
-    backgroundColor: '#2e7d32',
-    borderRadius: 8,
-    padding: 16,
-    marginBottom: 12,
-    alignItems: 'center',
-  },
-  cardWarning: {
-    backgroundColor: '#f57c00',
-  },
-  cardDanger: {
-    backgroundColor: '#d32f2f',
-  },
-  cardLabel: {
-    fontSize: 14,
-    color: 'rgba(255,255,255,0.8)',
+  errorTitle: {
+    fontSize: 18,
+    fontWeight: '700',
+    color: '#d32f2f',
     marginBottom: 8,
+    textAlign: 'center',
   },
-  cardValue: {
-    fontSize: 32,
-    fontWeight: 'bold',
-    color: '#fff',
+  errorMessage: {
+    fontSize: 14,
+    color: '#555',
+    marginBottom: 16,
+    textAlign: 'center',
+  },
+  emptyTitle: {
+    fontSize: 18,
+    fontWeight: '700',
+    color: '#333',
+    marginBottom: 8,
+    textAlign: 'center',
+  },
+  emptyMessage: {
+    fontSize: 14,
+    color: '#555',
+    marginBottom: 16,
+    textAlign: 'center',
   },
   buttonsContainer: {
     paddingHorizontal: 16,
@@ -200,3 +204,4 @@ const styles = StyleSheet.create({
     fontWeight: '600',
   },
 });
+
